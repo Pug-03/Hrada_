@@ -192,13 +192,12 @@ describe('Insights grouping (§11 Screen 8)', () => {
   beforeEach(() => useSession.getState().signInAsHR())
 
   it('caps At-Risk at five and offers the rest behind an expand', () => {
-    // At 114 people the real dataset currently produces only 3 at-risk
-    // skills — a healthy consequence of a bigger org covering more of them,
-    // not a regression, but it means the cap-and-expand affordance has
-    // nothing to demonstrate in the live render any more. Exercising it
-    // through InsightGroup directly with a synthetic 7-item fixture keeps
-    // this test meaningful regardless of how many at-risk skills the
-    // dataset happens to produce at any given size.
+    // The real at-risk count moves with roster size — a smaller org has more
+    // key-person risk, a bigger one covers more ground — so it should not be
+    // hardcoded into this test either way. Exercising the cap-and-expand
+    // affordance through InsightGroup directly with a synthetic 7-item
+    // fixture keeps this test meaningful regardless of how many at-risk
+    // skills the live dataset happens to produce at any given size.
     const items: Insight[] = Array.from({ length: 7 }, (_, i) => ({
       id: `fixture-${i}`,
       severity: 'warn',

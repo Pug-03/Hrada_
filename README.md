@@ -32,7 +32,7 @@ There is no backend, no database, and no LLM call at runtime. All data is TypeSc
 | `npm run dev` | Dev server with hot reload |
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the production build |
-| `npm test` | Run the test suite (120 tests) |
+| `npm test` | Run the test suite (238 tests) |
 | `npm run typecheck` | Type-check app and tests separately |
 | `npm run lint` | Oxlint |
 
@@ -123,27 +123,35 @@ be critical — so the two are separated here by asking different questions:
   the level committed. Derived from open jobs and active projects only, since a role someone hopes
   to grow into is not work owed to a client. On this dataset: AI Tools, alone.
 - **At-Risk** — exactly one person in the company holds the skill at 4.0, whether or not there is
-  open work for it. A key-person problem. At 114 people that is 3 skills rather than the 11 it was
-  at 14 — a bigger org naturally covers more ground, and that consolidation is expected, not a
-  regression. Two of the three (UX Research, Financial Analysis) are load-bearing §9.4 planted
-  cases the generated population is built to never disturb. The Insights screen shows the five
-  thinnest benches and expands to the rest, for whichever count the dataset produces.
+  open work for it. A key-person problem, and its count moves with roster size in either direction
+  as the underlying skill mix shifts — at 50 people it is 8 skills. Two of those (UX Research,
+  Financial Analysis) are load-bearing §9.4 planted cases the generated population is built to
+  never disturb. The Insights screen shows the five thinnest benches and expands to the rest, for
+  whichever count the dataset produces.
 
 The two sets cannot intersect: critical means zero owners, at-risk means one.
 
-### 14 hand-authored people, 100 generated
+### 14 hand-authored people, 36 generated
 
 `src/data/employees.ts` exports 14 people locked verbatim to the original product spec — never
 touch these — plus a synthetic population from `src/data/generateEmployees.ts` that rounds the
-roster out to 114, across the approved distribution:
+roster out to 50, across the approved distribution:
 
 | Department | Total | Hand-authored | Generated |
 | --- | --- | --- | --- |
-| Marketing | 22 | 4 | 18 |
-| Sales | 26 | 2 | 24 |
-| Data | 18 | 2 | 16 |
-| Product | 30 | 3 | 27 |
-| Operations | 18 | 3 | 15 |
+| Marketing | 10 | 4 | 6 |
+| Sales | 11 | 2 | 9 |
+| Data | 8 | 2 | 6 |
+| Product | 13 | 3 | 10 |
+| Operations | 8 | 3 | 5 |
+
+(An earlier pass scaled this to 114 people — Marketing 22/Sales 26/Data 18/Product 30/Operations
+18 — but the Skill Constellation stuttered at that headcount. Diagnosis found two real per-frame
+inefficiencies rather than raw node count: `useDrift` called the same offset calculation twice per
+point per frame instead of once, and the idle-twinkle layer ran one independent Framer animation
+loop per node forever instead of one shared clock. Both are fixed in `SkillConstellation.tsx`
+regardless of headcount — see the file's own comments — and the roster was separately brought back
+down to 50, proportionally scaled from the 114-person breakdown above.)
 
 The generator is a seeded PRNG (mulberry32, fixed seed), never `Math.random()` — the same
 "same data, same picture" guarantee the constellation's layout relies on holds for the generated
@@ -156,15 +164,11 @@ UX Research, and Financial Analysis — because §9.4's critical-gap and at-risk
 on nobody, and exactly one person respectively, ever crossing that bar. Workload and performance
 are kept from both crossing at once (>85% workload with ≥4.0 performance), so the only two
 Workload Risk cases stay Piya and Wichai. All seven planted cases were re-verified against the full
-114-person roster after generation, not assumed to still hold.
+50-person roster after generation, not assumed to still hold.
 
-One incidental consequence worth knowing: with 100 more people to choose from, `selectTeam`'s
-greedy algorithm sometimes has enough slack that it no longer needs to reach for an overloaded
-person on a given project, so the Team Matching screen's "Workload Risk warning with a backup
-name" card does not always have something to show for the three fixed projects at their default
-team sizes — a consequence of more realistic choice, not a bug. `ORG.totalHeadcount` moved from
-126 to 120, since 114 modeled out of 126 no longer reads as "a sample of a bigger company," and
-120 keeps a small, deliberate gap instead.
+`ORG.totalHeadcount` is 56 — 6 more than the 50 modeled, the same "small, believable gap" framing
+(people on leave, recent hires not yet onboarded) as the original spec's 126-for-14, recalibrated
+rather than carried over as a stale ratio.
 
 ## Design
 
@@ -190,14 +194,15 @@ Mobility, Workload, Skill Coverage).
 
 - **`src/lib/scoring.test.ts`** — every scoring function, dataset integrity (evidence rules, level
   ranges, history completeness, the 14 hand-authored people preserved exactly), and each of the
-  seven cases the brief plants in the data, re-verified against the full 114-person roster.
+  seven cases the brief plants in the data, re-verified against the full 50-person roster.
 - **`src/lib/constellation.test.ts`** / **`src/lib/theme.test.ts`** — the layout's drift-safety
   guarantee (no two nodes can touch under any cursor position, for the current headcount) and the
   department colour system staying inside the sky→signal hue range.
 - **`src/test/screens.dom.test.tsx`** — every screen under every role that can open it, failing on
   any console error or warning, plus the permission redirects.
 - **`src/test/role-picker.dom.test.tsx`** — the department-grouped, searchable employee picker
-  (both name forms, regardless of active locale) that replaced a flat 114-name list.
+  (both name forms, regardless of active locale) that replaced a flat 14-name list, since even the
+  current 50-person roster is too many names to list inline.
 - **`src/test/mono-numbers.dom.test.tsx`** — walks the rendered DOM of all eleven routes and fails
   on any digit not in the mono face.
 - **`src/test/reduced-motion.dom.test.tsx`** — re-renders every screen with the media query

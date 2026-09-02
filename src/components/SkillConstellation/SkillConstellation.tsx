@@ -23,6 +23,7 @@ import {
   twinklePlan,
   type ConstellationLayout,
   type ConstellationNode,
+  type TwinklePlan,
   type Vec2,
 } from '@/lib/constellation'
 import { colors, departmentHalo, departmentSwatch, motion as motionTokens } from '@/lib/theme'
@@ -84,6 +85,18 @@ const IDLE_GLOW_AMPLITUDE = 0.09
 /** ~12 updates a second for the twinkle — plenty for a multi-second breathe. */
 const TWINKLE_STEP_MS = 80
 
+/**
+ * The idle glow's opacity at a given clock time, for one node's twinkle plan.
+ * A plain sine read rather than Framer's keyframe-array easing machinery —
+ * cheap enough that running one of these per node off one shared clock costs
+ * about what a single independent animation controller used to, regardless
+ * of how many nodes there are.
+ */
+function twinkleOpacity(t: number, plan: TwinklePlan): number {
+  const phase = (t / 1000 / plan.period + plan.delay / plan.period) * Math.PI * 2
+  return IDLE_GLOW_BASE + IDLE_GLOW_AMPLITUDE * Math.sin(phase)
+}
+
 export function SkillConstellation({
   employees,
   onSelect,
@@ -138,12 +151,13 @@ export function SkillConstellation({
 
   /**
    * One shared clock for every animated-but-not-interactive element, rather
-   * than each one running its own. The idle twinkle used to be 114
-   * independent Framer animation controllers, each doing its own easing-curve
-   * evaluation and DOM write, forever, whether or not anyone was looking at
-   * the page. One clock, quantised to ~12 updates a second for the twinkle
-   * specifically — a 3–6 second breathing cycle does not need 60fps
-   * precision — cuts that to 114 cheap sine reads off one shared value.
+   * than each one running its own. The idle twinkle used to be one
+   * independent Framer animation controller per node, each doing its own
+   * easing-curve evaluation and DOM write, forever, whether or not anyone
+   * was looking at the page — a cost that grew linearly with headcount. One
+   * clock, quantised to ~12 updates a second for the twinkle specifically —
+   * a 3–6 second breathing cycle does not need 60fps precision — cuts that
+   * to one cheap sine read per node off one shared value, at any headcount.
    * EdgePulse (the travelling hover light) keeps the unthrottled clock, since
    * that one does benefit from smooth motion along the curve.
    */
@@ -364,9 +378,10 @@ export function SkillConstellation({
  * magnetOffset does a hypot, a normalise and a couple of conditionals — cheap
  * once, but this used to call it twice per point per frame (once to read
  * .dx, once to read .dy, throwing away the other half each time), across
- * every node and both endpoints of every edge. At 114 nodes / 830 edges that
- * was 3,548 calls a frame instead of 114. One combined useTransform computes
- * the vector once; dx and dy are then cheap reads off that single result.
+ * every node and both endpoints of every edge — a cost that doubled again
+ * with edge count on top of node count. One combined useTransform computes
+ * the vector once; dx and dy are then cheap reads off that single result,
+ * halving the call count at any dataset size.
  */
 function useDrift(point: { x: number; y: number }, pointer: Pointer, reduced: boolean) {
   const offset = useTransform<number, Vec2>(
@@ -594,28 +609,7 @@ function Node({
         r={node.r * 0.85}
         fill={colors.sky}
         filter="url(#node-glow-idle)"
-        initial={false}
-        animate={
-          reduced
-            ? { opacity: IDLE_GLOW_BASE }
-            : {
-                opacity: [
-                  IDLE_GLOW_BASE - IDLE_GLOW_AMPLITUDE,
-                  IDLE_GLOW_BASE + IDLE_GLOW_AMPLITUDE,
-                  IDLE_GLOW_BASE - IDLE_GLOW_AMPLITUDE,
-                ],
-              }
-        }
-        transition={
-          reduced
-            ? { duration: 0 }
-            : {
-                duration: twinkle.period,
-                delay: twinkle.delay,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }
-        }
+        style={{ opacity: idleGlowOpacity }}
       />
 
       {/*

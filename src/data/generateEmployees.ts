@@ -31,7 +31,8 @@ import type {
  *   - UX Research        → must stay at-risk with exactly 1 owner (Pimchanok)
  *   - Financial Analysis → must stay at-risk with exactly 1 owner (Siriporn)
  * Every other skill is free to gain a second or third qualified person as the
- * org grows — that is what should happen at 114 people, not a regression.
+ * org grows — that is what should happen as headcount rises, not a
+ * regression.
  *
  * Workload and performance are kept from both crossing at once (workload >85
  * and performance ≥4.0), so the only two Workload Risk cases stay Piya and
@@ -497,11 +498,11 @@ function sk(skillId: SkillId, level: number, evidence: Evidence[]): EmployeeSkil
  * distribution: Marketing 22, Sales 26, Data 18, Product 30, Operations 18.
  */
 const DEPARTMENT_TOTALS: Record<Department, number> = {
-  Marketing: 22,
-  Sales: 26,
-  Data: 18,
-  Product: 30,
-  Operations: 18,
+  Marketing: 10,
+  Sales: 11,
+  Data: 8,
+  Product: 13,
+  Operations: 8,
 }
 
 const EXISTING_COUNT: Record<Department, number> = {

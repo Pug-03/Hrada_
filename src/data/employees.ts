@@ -998,8 +998,8 @@ const HAND_AUTHORED_EMPLOYEES: Employee[] = [
 /**
  * The full roster — the 14 people the spec locks verbatim, plus a
  * deterministically generated population rounding the org out to the
- * approved department distribution (Marketing 22, Sales 26, Data 18,
- * Product 30, Operations 18 — 114 total). See generateEmployees.ts for how
+ * approved department distribution (Marketing 10, Sales 11, Data 8,
+ * Product 13, Operations 8 — 50 total). See generateEmployees.ts for how
  * and why the generated ids pick up at emp-15.
  */
 export const EMPLOYEES: Employee[] = [
@@ -1021,16 +1021,16 @@ export function skillLevel(employee: Employee, skillId: SkillId): number {
 
 /**
  * §9.1 named the company at 126 people with 14 shown, a small sample of a
- * bigger org. At 114 modeled (14 hand-authored + 100 generated) that framing
- * stopped doing anything — showing "nearly everyone" reads the same as
- * showing everyone. 120 keeps a small, believable gap (people on leave,
- * recent hires not yet onboarded) rather than a stale ratio calibrated for a
- * 14-person sample, or making the total exactly equal to what is modeled.
+ * bigger org. That ratio does not hold at any other modeled size — it was
+ * calibrated to 14. At 50 modeled (14 hand-authored + 36 generated), 56
+ * keeps the same "small, believable gap" framing (people on leave, recent
+ * hires not yet onboarded) rather than a stale ratio or a total exactly
+ * equal to what is modeled.
  */
 export const ORG = {
   name: 'ธนาวัฒน์ ดิจิทัล',
   nameLatin: 'Thanawat Digital',
   industry: 'Digital Services',
-  totalHeadcount: 120,
+  totalHeadcount: 56,
   departments: ['Marketing', 'Sales', 'Data', 'Product', 'Operations'] as const,
 }

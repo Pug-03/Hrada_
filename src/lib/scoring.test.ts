@@ -64,17 +64,17 @@ describe('dataset integrity', () => {
   })
 
   it('rounds the roster out to the approved department distribution', () => {
-    // Marketing 22, Sales 26, Data 18, Product 30, Operations 18 — 114 total.
+    // Marketing 10, Sales 11, Data 8, Product 13, Operations 8 — 50 total.
     const byDepartment = new Map<string, number>()
     for (const e of EMPLOYEES) byDepartment.set(e.department, (byDepartment.get(e.department) ?? 0) + 1)
     expect(Object.fromEntries(byDepartment)).toEqual({
-      Marketing: 22,
-      Sales: 26,
-      Data: 18,
-      Product: 30,
-      Operations: 18,
+      Marketing: 10,
+      Sales: 11,
+      Data: 8,
+      Product: 13,
+      Operations: 8,
     })
-    expect(EMPLOYEES).toHaveLength(114)
+    expect(EMPLOYEES).toHaveLength(50)
   })
 
   it('tracks 18 skills across 5 categories', () => {
@@ -259,7 +259,7 @@ describe('selectTeam (§10.4)', () => {
   })
 
   it('warns about a member over 90% workload and names a backup', () => {
-    // With the full 114-person roster the greedy algorithm has enough
+    // With the full 50-person roster the greedy algorithm has enough
     // choice that it never needs to reach for an overloaded person on this
     // project — a real improvement, not a regression, but it means this
     // mechanism needs a pool small enough to force the trade-off to prove
@@ -336,7 +336,7 @@ describe('calcPromotionReadiness (§10.6)', () => {
   })
 
   it('always includes the three high-potential people the spec plants', () => {
-    // At 14 people this was the exhaustive list; at 114 a realistic org has
+    // At 14 people this was the exhaustive list; at 50 a realistic org has
     // other strong performers too (confirmed: they stay a small minority,
     // not everyone) — what §9.4 actually requires is that these three are
     // never crowded out, not that nobody else may ever qualify.

@@ -26,8 +26,12 @@ export interface ConstellationLayout {
 
 /**
  * Enlarged from the original 900×520 when the roster grew from 14 to 114 —
- * five clusters of 18–30 people need real room between them, not just
- * between individual nodes within one.
+ * five clusters of 18–30 people needed real room between them, not just
+ * between individual nodes within one. Kept at this size after the roster
+ * was reduced back to 50 (clusters of 8–13): the sunflower-packing and
+ * drift-safety math below hold regardless of density, and a size tuned for
+ * the denser case only means more breathing room now, not a correctness
+ * issue.
  */
 export const VIEW = { width: 1180, height: 700 }
 
@@ -41,14 +45,18 @@ export const VIEW = { width: 1180, height: 700 }
  *
  * Tuned down from an earlier 9 when the field densified from 14 to 114
  * nodes — the same "lean toward the cursor" effect, sized to a field with
- * far less open space per node.
+ * far less open space per node. Left at 6 after the roster dropped back to
+ * 50: the minimum-separation formula below derives room for this exact pull
+ * regardless of cluster size, so a value tuned for the denser case stays
+ * provably safe at a sparser one too.
  */
 export const MAGNET_MAX_PULL = 6
 
 /**
- * Hand-placed cluster centres, one per department, sized for the approved
- * distribution (Marketing 22, Sales 26, Data 18, Product 30, Operations 18).
- * A real force simulation drifts between reloads and reads as noise; fixed
+ * Hand-placed cluster centres, one per department, sized for the canvas
+ * above (currently holding the approved 50-person distribution: Marketing
+ * 10, Sales 11, Data 8, Product 13, Operations 8). A real force simulation
+ * drifts between reloads and reads as noise; fixed
  * anchors with local relaxation keep the composition stable while the people
  * inside a department still settle naturally. Product and Sales — the two
  * largest clusters — sit in opposite corners with the most open canvas

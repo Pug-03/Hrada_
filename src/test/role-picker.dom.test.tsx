@@ -10,7 +10,7 @@ import { EMPLOYEES } from '@/data/employees'
 import { useSession } from '@/store/session'
 
 /**
- * At 14 people, listing everyone inline was fine. At 114 it is not — this
+ * At 14 people, listing everyone inline was fine. At 50 it is not — this
  * covers the department-grouped, searchable picker that replaced the flat
  * list in both the entry screen and the header's role switcher (§6 of the
  * scale-up brief): a collapsed department shows its count and a small
@@ -42,7 +42,7 @@ function departmentRow(container: HTMLElement, department: string): HTMLElement 
 describe('Entry screen employee picker at scale', () => {
   beforeEach(() => useSession.getState().signOut())
 
-  it('shows a bounded sample per department, not all 114 names', () => {
+  it('shows a bounded sample per department, not all 50 names', () => {
     const { container } = renderEntry()
     const nameLikeButtons = [...container.querySelectorAll('button')].filter((b) =>
       EMPLOYEES.some((e) => b.textContent?.includes(e.title) && b.textContent === `${e.name}${e.title}`),
@@ -55,11 +55,11 @@ describe('Entry screen employee picker at scale', () => {
   it('shows a headcount for every department', () => {
     const { container } = renderEntry()
     for (const [department, count] of [
-      ['Marketing', 22],
-      ['Sales', 26],
-      ['Data', 18],
-      ['Product', 30],
-      ['Operations', 18],
+      ['Marketing', 10],
+      ['Sales', 11],
+      ['Data', 8],
+      ['Product', 13],
+      ['Operations', 8],
     ] as const) {
       expect(departmentRow(container, department).textContent).toContain(String(count))
     }
@@ -108,7 +108,7 @@ describe('Entry screen employee picker at scale', () => {
   })
 
   it('is reachable through the department accordion for a generated (not hand-authored) person', () => {
-    // getAll, not get: the name pool is finite, so two of the 100 generated
+    // getAll, not get: the name pool is finite, so two of the 36 generated
     // people can land on the exact same (first name, surname initial) pair
     // by chance — the point here is that the person is reachable at all, not
     // that their name string happens to be unique in this particular run.
@@ -159,7 +159,7 @@ describe('header role switcher at scale', () => {
       (b) => b.textContent?.startsWith('Marketing') && /\d/.test(b.textContent ?? ''),
     )
     expect(row).toBeTruthy()
-    expect(row!.textContent).toContain('22')
+    expect(row!.textContent).toContain('10')
   })
 
   it('search narrows to matching people across departments, by either name form', () => {
@@ -180,7 +180,7 @@ describe('header role switcher at scale', () => {
     const { container } = renderDashboard()
     const menu = openSwitcher(container)
     // The full Latin name, not just the first word — first names are drawn
-    // from a shared pool and can repeat across 114 people, which would make
+    // from a shared pool and can repeat across 50 people, which would make
     // this ambiguous rather than proving the specific person is reachable.
     fireEvent.change(within(menu).getByPlaceholderText('ค้นหาชื่อ ตำแหน่ง หรือแผนก'), {
       target: { value: generated.nameLatin },
