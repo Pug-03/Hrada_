@@ -62,14 +62,20 @@ export const departmentTint: Record<string, number> = {
   Sales: 0.3,
 }
 
-/** `sky` at a given alpha. The hue is never redefined, only its opacity. */
-function skyAlpha(alpha: number): string {
-  const hex = colors.sky.replace('#', '')
+/**
+ * A palette colour at a given alpha. The only sanctioned way to soften a
+ * token: the hue is never redefined, only its opacity, so nothing can drift
+ * outside §3.1 by degrees.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const hex = color.replace('#', '')
   const r = parseInt(hex.slice(0, 2), 16)
   const g = parseInt(hex.slice(2, 4), 16)
   const b = parseInt(hex.slice(4, 6), 16)
   return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`
 }
+
+const skyAlpha = (alpha: number) => withAlpha(colors.sky, alpha)
 
 export function departmentHalo(department: string): string {
   return skyAlpha(0.08 + (departmentTint[department] ?? 0.5) * 0.16)

@@ -94,6 +94,15 @@ describe('reduced motion', () => {
     expect(container.querySelector('[data-constellation-pulses]')).toBeNull()
   })
 
+  it('never tilts the constellation canvas', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(container.querySelector('[data-tilt]')!.getAttribute('data-tilt')).toBe('off')
+  })
+
   it('opens a profile on click with no ring to wait for', async () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/dashboard']}>

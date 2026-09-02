@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts'
 
-import { colors } from '@/lib/theme'
+import { colors, withAlpha } from '@/lib/theme'
 
 const axis = { stroke: colors.haze, fontSize: 11, tickLine: false }
 /** §14.8 — numeric ticks take the mono face; categorical ones stay in the body face. */
@@ -24,18 +24,42 @@ const numericTick = { fill: colors.haze, fontSize: 11, fontFamily: 'var(--font-m
 const categoricalTick = { fill: colors.haze, fontSize: 11 }
 const gridProps = { stroke: colors.line, strokeDasharray: '3 3', vertical: false }
 
-function ChartTooltip({ suffix = '' }: { suffix?: string }) {
+/**
+ * Recharts ships light-theme defaults that only show up on interaction — a
+ * white tooltip body, a light-grey hover cursor, a white ring on the
+ * active dot.
+ * Every one of them is overridden here rather than per chart, so a new chart
+ * cannot reintroduce them by omission.
+ */
+function ChartTooltip({
+  suffix = '',
+  cursor = 'area',
+}: {
+  suffix?: string
+  /** Bars highlight the band behind them; lines get a vertical guide. */
+  cursor?: 'area' | 'line' | false
+}) {
   return (
     <Tooltip
-      cursor={{ fill: 'rgba(56,189,248,0.06)' }}
+      cursor={
+        cursor === false
+          ? false
+          : cursor === 'line'
+            ? { stroke: colors.line, strokeWidth: 1 }
+            : { fill: withAlpha(colors.sky, 0.06) }
+      }
       contentStyle={{
         background: colors.panelRaised,
         border: `1px solid ${colors.line}`,
         borderRadius: 8,
         fontSize: 12,
         color: colors.text,
+        boxShadow: `0 8px 24px ${withAlpha(colors.ink, 0.55)}`,
+        padding: '6px 10px',
       }}
+      wrapperStyle={{ outline: 'none' }}
       labelStyle={{ color: colors.haze, fontSize: 11 }}
+      itemStyle={{ color: colors.text, fontSize: 12, padding: 0 }}
       formatter={(value) => [`${value ?? ''}${suffix}`, '']}
     />
   )
@@ -64,7 +88,7 @@ export function CoverageBarChart({
           tickFormatter={(v: number) => `${v}%`}
           width={44}
         />
-        <ChartTooltip suffix="%" />
+        <ChartTooltip suffix="%" cursor="area" />
         <Bar
           dataKey={(row: { coverage: number }) => Math.round(row.coverage * 100)}
           name="Skill Coverage"
@@ -93,7 +117,7 @@ export function SkillHistoryLineChart({
         <CartesianGrid {...gridProps} />
         <XAxis dataKey="month" {...axis} tick={numericTick} />
         <YAxis {...axis} tick={numericTick} domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} width={40} />
-        <ChartTooltip />
+        <ChartTooltip cursor="line" />
         {series.map((s) => (
           <Line
             key={s.key}
@@ -103,7 +127,8 @@ export function SkillHistoryLineChart({
             stroke={s.color}
             strokeWidth={2}
             dot={{ r: 2.5, strokeWidth: 0 }}
-            activeDot={{ r: 4 }}
+            // Recharts rings the active dot in white by default.
+            activeDot={{ r: 4, stroke: colors.panel, strokeWidth: 2 }}
             isAnimationActive={!reduced}
             animationDuration={800}
           />
@@ -130,7 +155,7 @@ export function SkillRadarChart({
           tick={{ ...numericTick, fontSize: 9 }}
           axisLine={false}
         />
-        <ChartTooltip />
+        <ChartTooltip cursor={false} />
         {hasTarget ? (
           <Radar
             name="Target role"

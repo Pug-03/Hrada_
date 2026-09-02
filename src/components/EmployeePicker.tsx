@@ -19,7 +19,7 @@ export function EmployeePicker({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-line bg-panel px-3 py-2 text-[13px] outline-none transition-colors duration-150 hover:bg-panel-raised"
+        className="focus-ring rounded-lg border border-line bg-panel px-3 py-2 text-[13px] outline-none transition-colors duration-150 hover:bg-panel-raised"
       >
         {employees.map((employee) => (
           <option key={employee.id} value={employee.id} className="bg-panel">

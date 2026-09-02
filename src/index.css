@@ -58,18 +58,66 @@
     font-feature-settings: 'tnum' 1;
   }
 
+  /*
+   * One focus ring for the whole product, in `sky`. Any control that clears
+   * its own outline must restore this — see .focus-ring below.
+   */
   :focus-visible {
     outline: 2px solid var(--color-sky);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: var(--color-ink); }
+  /*
+   * For controls that need `outline-none` to keep their own border geometry.
+   * The ring is drawn as a shadow instead, in the same colour, so removing the
+   * outline never means removing the focus indicator.
+   */
+  .focus-ring:focus-visible {
+    outline: none;
+    border-color: var(--color-signal);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-sky) 55%, transparent);
+  }
+
+  /* For a field whose focus lands on an inner input rather than the box. */
+  .focus-ring-within:focus-within {
+    border-color: var(--color-signal);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-sky) 55%, transparent);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-signal) 45%, transparent);
+    color: var(--color-text);
+  }
+
+  /* Firefox. Keeps the bar out of the OS light theme on a dark page. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) var(--color-ink);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink);
+  }
+
   ::-webkit-scrollbar-thumb {
     background: var(--color-line);
+    border: 2px solid var(--color-ink);
     border-radius: 999px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: #263a56; }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--color-line) 70%, var(--color-haze));
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--color-ink);
+  }
 }
 
 /*

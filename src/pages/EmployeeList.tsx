@@ -34,7 +34,7 @@ export default function EmployeeList() {
         </p>
       </div>
 
-      <label className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2">
+      <label className="focus-ring-within flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2">
         <Search size={15} className="text-haze" />
         <input
           value={query}

@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, RotateCcw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
+import { EntryBackdrop } from '@/components/EntryBackdrop'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EMPLOYEES, ORG } from '@/data/employees'
@@ -32,7 +33,8 @@ export default function Entry() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl py-6">
+    <div className="relative isolate mx-auto max-w-3xl py-6">
+      <EntryBackdrop />
       <p className="text-[13px] text-haze">
         {ORG.name} · {ORG.industry} · <span className="num">{ORG.totalHeadcount}</span> คน
         <span className="text-haze/70">

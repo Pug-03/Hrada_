@@ -59,6 +59,13 @@ const STRENGTH_SPRING = { stiffness: 180, damping: 26 }
 const HOVER_SPRING = { type: 'spring' as const, stiffness: 340, damping: 18 }
 const PULSE_PERIOD_MS = 1500
 const RIPPLE_MS = 260
+const TILT_SPRING = { stiffness: 120, damping: 22, mass: 0.6 }
+/**
+ * Maximum canvas rotation, in degrees. Small on purpose: enough that the field
+ * reads as a surface with depth rather than a flat image, not enough to skew a
+ * circle into an ellipse or soften an edge.
+ */
+const TILT_MAX_DEG = 1.6
 
 export function SkillConstellation({
   employees,
@@ -72,6 +79,14 @@ export function SkillConstellation({
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [hovered, setHovered] = useState<ConstellationNode | null>(null)
   const [ripple, setRipple] = useState<ConstellationNode | null>(null)
+  /**
+   * Tilt is dropped the instant a node is clicked and stays off until the
+   * hand-off is done. A rotate transform on an ancestor of the layoutId circle
+   * is what breaks Framer's layout projection, and the failure mode is the
+   * node arriving at the profile from the wrong place — so the canvas is made
+   * flat before the transition is allowed to begin.
+   */
+  const [tilting, setTilting] = useState(true)
 
   const layout = useMemo(() => layoutConstellation(employees), [employees])
   const maxShared = Math.max(1, ...layout.edges.map((e) => e.sharedSkills.length))
@@ -94,22 +109,37 @@ export function SkillConstellation({
     strength: useSpring(rawStrength, STRENGTH_SPRING),
   }
 
+  // Parallax, driven by the same pointer but springed separately so the canvas
+  // settles a little behind the nodes rather than with them.
+  const rawTiltX = useMotionValue(0)
+  const rawTiltY = useMotionValue(0)
+  const tiltX = useSpring(rawTiltX, TILT_SPRING)
+  const tiltY = useSpring(rawTiltY, TILT_SPRING)
+
   const onPointerMove = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
       if (reduced) return
       const rect = svgRef.current?.getBoundingClientRect()
       if (!rect || rect.width === 0 || rect.height === 0) return
-      rawX.set(((event.clientX - rect.left) / rect.width) * layout.width)
-      rawY.set(((event.clientY - rect.top) / rect.height) * layout.height)
+      const fractionX = (event.clientX - rect.left) / rect.width
+      const fractionY = (event.clientY - rect.top) / rect.height
+      rawX.set(fractionX * layout.width)
+      rawY.set(fractionY * layout.height)
       rawStrength.set(1)
+      // Pointer right of centre lifts the right edge toward the viewer, the
+      // way a physical surface would tip under a finger.
+      rawTiltY.set((fractionX - 0.5) * 2 * TILT_MAX_DEG)
+      rawTiltX.set(-(fractionY - 0.5) * 2 * TILT_MAX_DEG)
     },
-    [reduced, rawX, rawY, rawStrength, layout.width, layout.height],
+    [reduced, rawX, rawY, rawStrength, rawTiltX, rawTiltY, layout.width, layout.height],
   )
 
   const onPointerLeave = useCallback(() => {
     rawStrength.set(0)
+    rawTiltX.set(0)
+    rawTiltY.set(0)
     setHovered(null)
-  }, [rawStrength])
+  }, [rawStrength, rawTiltX, rawTiltY])
 
   const open = useCallback(
     (node: ConstellationNode) => {
@@ -127,88 +157,108 @@ export function SkillConstellation({
         open(node)
         return
       }
+      // Flatten first. Swapping the style to a literal 0 is not an animation,
+      // so the canvas is already square by the time the ring starts playing.
+      setTilting(false)
+      rawTiltX.set(0)
+      rawTiltY.set(0)
       setRipple(node)
       window.setTimeout(() => {
         setRipple(null)
         open(node)
       }, RIPPLE_MS)
     },
-    [reduced, open],
+    [reduced, open, rawTiltX, rawTiltY],
   )
+
+  const tiltActive = tilting && !reduced
 
   return (
     <div className="relative">
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${layout.width} ${layout.height}`}
-        className="w-full"
-        role="img"
-        aria-label={`Skill Constellation ของพนักงาน ${employees.length} คน`}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
+      {/*
+        The tilt lives on a wrapper rather than the svg itself so the
+        tooltip and the legend outside it stay square and crisp.
+      */}
+      <motion.div
+        data-tilt={tiltActive ? 'on' : 'off'}
+        style={
+          tiltActive
+            ? { rotateX: tiltX, rotateY: tiltY, transformPerspective: 1400 }
+            : { rotateX: 0, rotateY: 0 }
+        }
       >
-        <defs>
-          <radialGradient id="node-core" cx="50%" cy="50%">
-            <stop offset="0%" stopColor={colors.sky} stopOpacity={0.6} />
-            <stop offset="100%" stopColor={colors.sky} />
-          </radialGradient>
-          {/* Hover glow. Sky only — the palette stays closed (§3.1). */}
-          <filter id="node-glow" x="-120%" y="-120%" width="340%" height="340%">
-            <feDropShadow
-              dx="0"
-              dy="0"
-              stdDeviation="5"
-              floodColor={colors.sky}
-              floodOpacity="0.85"
-            />
-          </filter>
-        </defs>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${layout.width} ${layout.height}`}
+          className="w-full"
+          role="img"
+          aria-label={`Skill Constellation ของพนักงาน ${employees.length} คน`}
+          onPointerMove={onPointerMove}
+          onPointerLeave={onPointerLeave}
+        >
+          <defs>
+            <radialGradient id="node-core" cx="50%" cy="50%">
+              <stop offset="0%" stopColor={colors.sky} stopOpacity={0.6} />
+              <stop offset="100%" stopColor={colors.sky} />
+            </radialGradient>
+            {/* Hover glow. Sky only — the palette stays closed (§3.1). */}
+            <filter id="node-glow" x="-120%" y="-120%" width="340%" height="340%">
+              <feDropShadow
+                dx="0"
+                dy="0"
+                stdDeviation="5"
+                floodColor={colors.sky}
+                floodOpacity="0.85"
+              />
+            </filter>
+          </defs>
 
-        {/* Edges first, so nodes always sit above their connections. */}
-        <g>
-          {layout.edges.map((edge) => (
-            <Edge
-              key={`${edge.a}-${edge.b}`}
-              edge={edge}
-              strength={edge.sharedSkills.length / maxShared}
+          {/* Edges first, so nodes always sit above their connections. */}
+          <g>
+            {layout.edges.map((edge) => (
+              <Edge
+                key={`${edge.a}-${edge.b}`}
+                edge={edge}
+                strength={edge.sharedSkills.length / maxShared}
+                hoveredId={hovered?.id ?? null}
+                pointer={pointer}
+                reduced={Boolean(reduced)}
+              />
+            ))}
+          </g>
+
+          {/* Energy travelling outward along whatever the held node touches. */}
+          {hovered && !reduced ? (
+            <g aria-hidden data-constellation-pulses>
+              {layout.edges
+                .filter((edge) => edgeTouches(edge, hovered.id))
+                .map((edge) => (
+                  <EdgePulse
+                    key={`pulse-${edge.a}-${edge.b}`}
+                    from={edge.from.id === hovered.id ? edge.from : edge.to}
+                    to={edge.from.id === hovered.id ? edge.to : edge.from}
+                    pointer={pointer}
+                  />
+                ))}
+            </g>
+          ) : null}
+
+          {layout.nodes.map((node) => (
+            <Node
+              key={node.id}
+              node={node}
+              layout={layout}
               hoveredId={hovered?.id ?? null}
+              neighbours={neighbours}
+              rippling={ripple?.id === node.id}
               pointer={pointer}
               reduced={Boolean(reduced)}
+              onHover={setHovered}
+              onActivate={activate}
             />
           ))}
-        </g>
-
-        {/* Energy travelling outward along whatever the held node touches. */}
-        {hovered && !reduced ? (
-          <g aria-hidden data-constellation-pulses>
-            {layout.edges
-              .filter((edge) => edgeTouches(edge, hovered.id))
-              .map((edge) => (
-                <EdgePulse
-                  key={`pulse-${edge.a}-${edge.b}`}
-                  from={edge.from.id === hovered.id ? edge.from : edge.to}
-                  to={edge.from.id === hovered.id ? edge.to : edge.from}
-                  pointer={pointer}
-                />
-              ))}
-          </g>
-        ) : null}
-
-        {layout.nodes.map((node) => (
-          <Node
-            key={node.id}
-            node={node}
-            layout={layout}
-            hoveredId={hovered?.id ?? null}
-            neighbours={neighbours}
-            rippling={ripple?.id === node.id}
-            pointer={pointer}
-            reduced={Boolean(reduced)}
-            onHover={setHovered}
-            onActivate={activate}
-          />
-        ))}
-      </svg>
+        </svg>
+      </motion.div>
 
       {hovered ? (
         <div

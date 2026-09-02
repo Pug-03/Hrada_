@@ -223,6 +223,35 @@ describe('Insights grouping (§11 Screen 8)', () => {
   })
 })
 
+describe('Entry backdrop (§3.3 — texture, not a second hero)', () => {
+  beforeEach(() => useSession.getState().signOut())
+
+  it('sits behind the entry screen, hidden from assistive tech', () => {
+    const { container } = renderAt('/')
+    const backdrop = container.querySelector('[data-entry-backdrop]')
+    expect(backdrop).toBeTruthy()
+    expect(backdrop!.getAttribute('aria-hidden')).toBe('true')
+    expect(backdrop!.querySelectorAll('circle').length).toBeGreaterThan(20)
+    expect(backdrop!.querySelectorAll('line').length).toBeGreaterThan(0)
+  })
+
+  it('is static — no animated element anywhere in it', () => {
+    const { container } = renderAt('/')
+    const backdrop = container.querySelector('[data-entry-backdrop]')!
+    expect(backdrop.querySelectorAll('animate, animateTransform')).toHaveLength(0)
+    for (const node of backdrop.querySelectorAll('*')) {
+      expect(node.getAttribute('style') ?? '').not.toContain('transition')
+    }
+  })
+
+  it('appears only on the entry screen', () => {
+    cleanup()
+    useSession.getState().signInAsHR()
+    const { container } = renderAt('/dashboard')
+    expect(container.querySelector('[data-entry-backdrop]')).toBeNull()
+  })
+})
+
 describe('Tracking has two modes and both render (§11 Screen 7)', () => {
   beforeEach(() => useSession.getState().signInAsHR())
 

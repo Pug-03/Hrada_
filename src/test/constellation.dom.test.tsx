@@ -103,6 +103,22 @@ describe('constellation hover', () => {
     )
   })
 
+  it('flattens the canvas on click, before the profile hand-off begins', async () => {
+    const { container } = renderDashboard()
+    const tilt = () => container.querySelector('[data-tilt]')!.getAttribute('data-tilt')
+    expect(tilt()).toBe('on')
+
+    fireEvent.click(nodeFor(container, HOVERED))
+    // Flat already, while the ring is still playing and before navigation —
+    // a rotated ancestor would break the layoutId projection.
+    expect(tilt()).toBe('off')
+    expect(screen.getByRole('heading', { name: 'Workforce Dashboard' })).toBeTruthy()
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'ปิยะ ส.' })).toBeTruthy(), {
+      timeout: 2000,
+    })
+  })
+
   it('clears the hover when the pointer leaves the canvas entirely', () => {
     const { container } = renderDashboard()
     fireEvent.mouseEnter(nodeFor(container, HOVERED))
