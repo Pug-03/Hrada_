@@ -3,14 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { EMPLOYEES } from '@/data/employees'
 import {
   DIMMED_OPACITY,
+  edgeCurveOffset,
   edgeEmphasis,
   edgeTouches,
+  generateStarfield,
+  hashUnit,
   layoutConstellation,
   magnetOffset,
   MAGNET_MAX_PULL,
   MAGNET_RADIUS,
   neighbourIds,
   nodeEmphasis,
+  twinklePlan,
   VIEW,
 } from './constellation'
 
@@ -212,5 +216,98 @@ describe('hover emphasis', () => {
     expect(edgeEmphasis({ a: 'x', b: 'y' }, 1, null)).toBeGreaterThan(
       edgeEmphasis({ a: 'x', b: 'y' }, 0.1, null),
     )
+  })
+})
+
+describe('hashUnit', () => {
+  it('is deterministic', () => {
+    expect(hashUnit('emp-01')).toBe(hashUnit('emp-01'))
+  })
+
+  it('stays within [0, 1)', () => {
+    for (const seed of ['emp-01', 'emp-02:phase', 'star:41:x', '', 'a']) {
+      const value = hashUnit(seed)
+      expect(value).toBeGreaterThanOrEqual(0)
+      expect(value).toBeLessThan(1)
+    }
+  })
+
+  it('spreads different seeds apart rather than clustering', () => {
+    const values = layout.nodes.map((n) => hashUnit(n.id))
+    const unique = new Set(values.map((v) => v.toFixed(6)))
+    expect(unique.size).toBe(values.length)
+  })
+})
+
+describe('twinklePlan', () => {
+  it('keeps every period within the small, slow range', () => {
+    for (const node of layout.nodes) {
+      const plan = twinklePlan(node.id)
+      expect(plan.period).toBeGreaterThanOrEqual(3.2)
+      expect(plan.period).toBeLessThan(3.2 + 2.6)
+    }
+  })
+
+  it('gives different nodes different phase offsets', () => {
+    const delays = layout.nodes.map((n) => twinklePlan(n.id).delay)
+    const unique = new Set(delays.map((d) => d.toFixed(6)))
+    expect(unique.size).toBe(delays.length)
+  })
+
+  it('is deterministic', () => {
+    expect(twinklePlan('emp-01')).toEqual(twinklePlan('emp-01'))
+  })
+})
+
+describe('edgeCurveOffset', () => {
+  it('bows away from the straight line, never sits on it', () => {
+    for (const edge of layout.edges) {
+      const { cx, cy } = edgeCurveOffset(edge.from, edge.to, `${edge.a}-${edge.b}`)
+      const mx = (edge.from.x + edge.to.x) / 2
+      const my = (edge.from.y + edge.to.y) / 2
+      expect(Math.hypot(cx - mx, cy - my)).toBeGreaterThan(0)
+    }
+  })
+
+  it('caps the bow so long edges do not arc wildly', () => {
+    const from = { x: 0, y: 0 }
+    const to = { x: 900, y: 0 }
+    const { cx, cy } = edgeCurveOffset(from, to, 'far-edge')
+    // The control point's perpendicular distance from the straight line is
+    // capped at 16 view units regardless of how long the edge is.
+    expect(Math.abs(cy)).toBeLessThanOrEqual(16)
+    expect(cx).toBeCloseTo(450, 0)
+  })
+
+  it('always curves the same edge the same way', () => {
+    const a = edgeCurveOffset({ x: 10, y: 10 }, { x: 200, y: 80 }, 'emp-01-emp-02')
+    const b = edgeCurveOffset({ x: 10, y: 10 }, { x: 200, y: 80 }, 'emp-01-emp-02')
+    expect(a).toEqual(b)
+  })
+})
+
+describe('generateStarfield', () => {
+  it('is deterministic and independent of the employee dataset', () => {
+    const a = generateStarfield(VIEW.width, VIEW.height)
+    const b = generateStarfield(VIEW.width, VIEW.height)
+    expect(a).toEqual(b)
+  })
+
+  it('keeps every star inside the view and dim', () => {
+    const stars = generateStarfield(VIEW.width, VIEW.height)
+    expect(stars.length).toBeGreaterThan(0)
+    for (const star of stars) {
+      expect(star.x).toBeGreaterThanOrEqual(0)
+      expect(star.x).toBeLessThanOrEqual(VIEW.width)
+      expect(star.y).toBeGreaterThanOrEqual(0)
+      expect(star.y).toBeLessThanOrEqual(VIEW.height)
+      // Dim and small enough to read as background, not as a person.
+      expect(star.opacity).toBeLessThan(0.25)
+      expect(star.r).toBeLessThan(2)
+    }
+  })
+
+  it('honours the requested count', () => {
+    expect(generateStarfield(VIEW.width, VIEW.height, 25)).toHaveLength(25)
   })
 })

@@ -12,12 +12,15 @@ import { useNavigate } from 'react-router-dom'
 
 import type { Employee } from '@/data/types'
 import {
+  edgeCurveOffset,
   edgeEmphasis,
   edgeTouches,
+  generateStarfield,
   layoutConstellation,
   magnetOffset,
   neighbourIds,
   nodeEmphasis,
+  twinklePlan,
   type ConstellationLayout,
   type ConstellationNode,
 } from '@/lib/constellation'
@@ -68,6 +71,13 @@ const TILT_SPRING = { stiffness: 120, damping: 22, mass: 0.6 }
  * circle into an ellipse or soften an edge.
  */
 const TILT_MAX_DEG = 1.6
+/**
+ * The idle glow's resting opacity and how far the twinkle moves it in either
+ * direction. Small on purpose — requirement is that it "feels alive," not
+ * that it draws the eye away from what hovering does.
+ */
+const IDLE_GLOW_BASE = 0.3
+const IDLE_GLOW_AMPLITUDE = 0.09
 
 export function SkillConstellation({
   employees,
@@ -93,6 +103,7 @@ export function SkillConstellation({
   const [tilting, setTilting] = useState(true)
 
   const layout = useMemo(() => layoutConstellation(employees), [employees])
+  const stars = useMemo(() => generateStarfield(layout.width, layout.height), [layout.width, layout.height])
   const maxShared = Math.max(1, ...layout.edges.map((e) => e.sharedSkills.length))
   const neighbours = useMemo(
     () => (hovered ? neighbourIds(layout.edges, hovered.id) : null),
@@ -201,12 +212,22 @@ export function SkillConstellation({
           onPointerLeave={onPointerLeave}
         >
           <defs>
-            <radialGradient id="node-core" cx="50%" cy="50%">
-              <stop offset="0%" stopColor={colors.sky} stopOpacity={0.6} />
-              <stop offset="100%" stopColor={colors.sky} />
+            {/*
+              Bright core fading to the edge, rather than the reverse — a
+              flat-filled circle reads as a network diagram's node; a hot
+              centre that falls off reads as a point of light.
+            */}
+            <radialGradient id="node-core" cx="42%" cy="38%" r="65%">
+              <stop offset="0%" stopColor={colors.text} stopOpacity={0.95} />
+              <stop offset="35%" stopColor={colors.sky} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={colors.sky} stopOpacity={0.55} />
             </radialGradient>
+            {/* Always-on ambient glow — soft at rest, in §4's warn colour for the overload ring. */}
+            <filter id="node-glow-idle" x="-160%" y="-160%" width="420%" height="420%">
+              <feDropShadow dx="0" dy="0" stdDeviation="2.4" floodColor={colors.sky} floodOpacity="0.9" />
+            </filter>
             {/* Hover glow. Sky only — the palette stays closed (§3.1). */}
-            <filter id="node-glow" x="-120%" y="-120%" width="340%" height="340%">
+            <filter id="node-glow" x="-160%" y="-160%" width="420%" height="420%">
               <feDropShadow
                 dx="0"
                 dy="0"
@@ -216,6 +237,17 @@ export function SkillConstellation({
               />
             </filter>
           </defs>
+
+          {/*
+            Decorative starfield — atmosphere, not data. Smaller, dimmer, no
+            glow, no edges, and rendered as plain circles rather than motion
+            components: nothing here ever moves or responds to the pointer.
+          */}
+          <g aria-hidden data-constellation-starfield fill={colors.haze}>
+            {stars.map((star, i) => (
+              <circle key={i} cx={star.x} cy={star.y} r={star.r} opacity={star.opacity} />
+            ))}
+          </g>
 
           {/* Edges first, so nodes always sit above their connections. */}
           <g>
@@ -330,20 +362,26 @@ function Edge({
 }) {
   const from = useDrift(edge.from, pointer, reduced)
   const to = useDrift(edge.to, pointer, reduced)
+  const edgeId = `${edge.a}-${edge.b}`
 
   // Endpoints track the nodes they belong to, so a drifting node never leaves
-  // its lines behind.
-  const x1 = useTransform(from.dx, (d) => edge.from.x + d)
-  const y1 = useTransform(from.dy, (d) => edge.from.y + d)
-  const x2 = useTransform(to.dx, (d) => edge.to.x + d)
-  const y2 = useTransform(to.dy, (d) => edge.to.y + d)
+  // its lines behind. The curve's control point is recomputed from those same
+  // live endpoints, so the bow follows the drift too rather than staying
+  // pinned to the rest position.
+  const d = useTransform<number, string>(
+    [from.dx, from.dy, to.dx, to.dy],
+    ([fdx, fdy, tdx, tdy]) => {
+      const start = { x: edge.from.x + fdx, y: edge.from.y + fdy }
+      const end = { x: edge.to.x + tdx, y: edge.to.y + tdy }
+      const { cx, cy } = edgeCurveOffset(start, end, edgeId)
+      return `M ${start.x} ${start.y} Q ${cx} ${cy} ${end.x} ${end.y}`
+    },
+  )
 
   return (
-    <motion.line
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
+    <motion.path
+      d={d}
+      fill="none"
       stroke={colors.sky}
       strokeWidth={0.4 + strength * 1.7}
       initial={reduced ? { opacity: 0.14 } : { opacity: 0 }}
@@ -371,19 +409,34 @@ function EdgePulse({
   const progress = useTransform(time, (t) => ((t % PULSE_PERIOD_MS) / PULSE_PERIOD_MS))
   const fromDrift = useDrift(from, pointer, false)
   const toDrift = useDrift(to, pointer, false)
+  const edgeId = `${from.id}-${to.id}`
 
-  const cx = useTransform<number, number>(
-    [progress, fromDrift.dx, toDrift.dx],
-    ([p, fd, td]) => from.x + fd + (to.x + td - (from.x + fd)) * p,
+  // Travels the same quadratic bezier the edge itself is drawn as (§5), not a
+  // straight-line shortcut across it.
+  const pointX = useTransform<number, number>(
+    [progress, fromDrift.dx, fromDrift.dy, toDrift.dx, toDrift.dy],
+    ([p, fdx, fdy, tdx, tdy]) => {
+      const start = { x: from.x + fdx, y: from.y + fdy }
+      const end = { x: to.x + tdx, y: to.y + tdy }
+      const { cx } = edgeCurveOffset(start, end, edgeId)
+      const inv = 1 - p
+      return inv * inv * start.x + 2 * inv * p * cx + p * p * end.x
+    },
   )
-  const cy = useTransform<number, number>(
-    [progress, fromDrift.dy, toDrift.dy],
-    ([p, fd, td]) => from.y + fd + (to.y + td - (from.y + fd)) * p,
+  const pointY = useTransform<number, number>(
+    [progress, fromDrift.dx, fromDrift.dy, toDrift.dx, toDrift.dy],
+    ([p, fdx, fdy, tdx, tdy]) => {
+      const start = { x: from.x + fdx, y: from.y + fdy }
+      const end = { x: to.x + tdx, y: to.y + tdy }
+      const { cy } = edgeCurveOffset(start, end, edgeId)
+      const inv = 1 - p
+      return inv * inv * start.y + 2 * inv * p * cy + p * p * end.y
+    },
   )
   // Fades in as it leaves and out as it arrives, so nothing pops at either end.
   const opacity = useTransform(progress, [0, 0.15, 0.85, 1], [0, 0.9, 0.9, 0])
 
-  return <motion.circle cx={cx} cy={cy} r={1.8} fill={colors.sky} style={{ opacity }} />
+  return <motion.circle cx={pointX} cy={pointY} r={1.8} fill={colors.sky} style={{ opacity }} />
 }
 
 function Node({
@@ -415,6 +468,7 @@ function Node({
   const delay = reduced
     ? 0
     : layout.departments.indexOf(node.department) * motionTokens.constellationStagger
+  const twinkle = useMemo(() => twinklePlan(node.id), [node.id])
 
   return (
     <motion.g
@@ -483,9 +537,48 @@ function Node({
       />
 
       {/*
-        The glow sits on its own circle rather than on the core. The core
-        carries the layoutId that flies into the profile, and an SVG filter
-        changes the box that projection measures.
+        Permanent soft glow — every node gets one, not just the hovered one.
+        It is what turns a filled circle into a point of light rather than a
+        network-diagram node. The twinkle lives entirely on this circle's own
+        opacity, on its own loop, so it never fights the hover glow below or
+        the emphasis opacity on the group: three independent signals stacked
+        rather than one opacity value doing three jobs.
+      */}
+      <motion.circle
+        data-idle-glow={node.id}
+        cx={node.x}
+        cy={node.y}
+        r={node.r * 0.85}
+        fill={colors.sky}
+        filter="url(#node-glow-idle)"
+        initial={false}
+        animate={
+          reduced
+            ? { opacity: IDLE_GLOW_BASE }
+            : {
+                opacity: [
+                  IDLE_GLOW_BASE - IDLE_GLOW_AMPLITUDE,
+                  IDLE_GLOW_BASE + IDLE_GLOW_AMPLITUDE,
+                  IDLE_GLOW_BASE - IDLE_GLOW_AMPLITUDE,
+                ],
+              }
+        }
+        transition={
+          reduced
+            ? { duration: 0 }
+            : {
+                duration: twinkle.period,
+                delay: twinkle.delay,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }
+        }
+      />
+
+      {/*
+        The hover glow sits on its own circle rather than on the core. The
+        core carries the layoutId that flies into the profile, and an SVG
+        filter changes the box that projection measures.
       */}
       {active && !reduced ? (
         <circle

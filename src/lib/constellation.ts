@@ -225,3 +225,100 @@ export function edgeEmphasis(
 }
 
 export const DIMMED_OPACITY = 0.3
+
+// ─────────────────────────────────────────────────────────── resting state ──
+
+/**
+ * A stable pseudo-random value in [0, 1) for a given string.
+ *
+ * Used for anything in the resting state that should look randomised — the
+ * twinkle phase of a node, which way an edge bows — without ever actually
+ * calling Math.random(). The layout promises the same data always produces
+ * the same picture; a per-render random phase would break that promise the
+ * first time someone screenshots the "same" dashboard twice.
+ */
+export function hashUnit(seed: string): number {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  // >>> 0 forces an unsigned 32-bit value before normalising to [0, 1).
+  return (h >>> 0) / 4294967296
+}
+
+/** Idle twinkle timing for one node — slow, small, and out of phase with its neighbours. */
+export interface TwinklePlan {
+  /** Seconds for one full breathe-in-and-out cycle. */
+  period: number
+  /** Negative start offset, in seconds, so nodes don't breathe in unison. */
+  delay: number
+}
+
+const TWINKLE_MIN_PERIOD = 3.2
+const TWINKLE_PERIOD_RANGE = 2.6
+
+export function twinklePlan(nodeId: string): TwinklePlan {
+  const period = TWINKLE_MIN_PERIOD + hashUnit(nodeId) * TWINKLE_PERIOD_RANGE
+  const delay = -hashUnit(`${nodeId}:phase`) * period
+  return { period, delay }
+}
+
+/**
+ * How far a connecting line bows away from straight, and to which side.
+ *
+ * The sign comes from the edge's own id pair so the same two people always
+ * curve the same way between reloads; the magnitude is a small, capped
+ * fraction of the edge's length so a long cross-canvas line doesn't arc more
+ * than a short local one.
+ */
+export function edgeCurveOffset(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  edgeId: string,
+): { cx: number; cy: number } {
+  const mx = (from.x + to.x) / 2
+  const my = (from.y + to.y) / 2
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = Math.hypot(dx, dy) || 1
+  const side = hashUnit(edgeId) < 0.5 ? -1 : 1
+  const bow = Math.min(16, length * 0.09) * side
+  // Perpendicular unit vector, scaled by the bow amount.
+  const nx = -dy / length
+  const ny = dx / length
+  return { cx: mx + nx * bow, cy: my + ny * bow }
+}
+
+/** One point in the decorative starfield behind the real nodes. */
+export interface StarfieldPoint {
+  x: number
+  y: number
+  r: number
+  opacity: number
+}
+
+/**
+ * A sprinkle of faint, static background dots — pure atmosphere, not data.
+ *
+ * Seeded from an index rather than the employee list, so the starfield does
+ * not shift when someone's skill data changes; it is the sky the real nodes
+ * hang in, not a rendering of anything.
+ */
+export function generateStarfield(
+  width: number,
+  height: number,
+  count = 70,
+): StarfieldPoint[] {
+  const stars: StarfieldPoint[] = []
+  for (let i = 0; i < count; i++) {
+    const seed = `star:${i}`
+    stars.push({
+      x: hashUnit(`${seed}:x`) * width,
+      y: hashUnit(`${seed}:y`) * height,
+      r: 0.5 + hashUnit(`${seed}:r`) * 0.9,
+      opacity: 0.06 + hashUnit(`${seed}:o`) * 0.14,
+    })
+  }
+  return stars
+}

@@ -129,3 +129,66 @@ describe('constellation hover', () => {
     expect(screen.queryByText('Data Lead')).toBeNull()
   })
 })
+
+describe('constellation resting state', () => {
+  beforeEach(() => useSession.getState().signInAsHR())
+
+  it('gives every node a permanent idle glow, not just the hovered one', () => {
+    const { container } = renderDashboard()
+    expect(container.querySelectorAll('[data-idle-glow]')).toHaveLength(EMPLOYEES.length)
+
+    // Confirm it is unaffected by hover — it is not the hover glow in disguise.
+    fireEvent.mouseEnter(nodeFor(container, HOVERED))
+    expect(container.querySelectorAll('[data-idle-glow]')).toHaveLength(EMPLOYEES.length)
+  })
+
+  it('scatters a decorative starfield behind the real nodes', () => {
+    const { container } = renderDashboard()
+    const starfield = container.querySelector('[data-constellation-starfield]')
+    expect(starfield).toBeTruthy()
+    const stars = starfield!.querySelectorAll('circle')
+    expect(stars.length).toBeGreaterThan(20)
+
+    // Stars carry none of the identity or interaction machinery real nodes do.
+    for (const star of stars) {
+      expect(star.getAttribute('data-node-id')).toBeNull()
+      expect(star.getAttribute('tabindex')).toBeNull()
+      expect(star.getAttribute('filter')).toBeNull()
+    }
+  })
+
+  it('draws the starfield behind the node layer in paint order', () => {
+    const { container } = renderDashboard()
+    const svg = container.querySelector('svg[role="img"]')!
+    const children = [...svg.children]
+    const starfieldIndex = children.findIndex((c) => c.hasAttribute('data-constellation-starfield'))
+    const firstNodeGroup = children.findIndex((c) => c.matches('[data-node-id]'))
+    expect(starfieldIndex).toBeGreaterThanOrEqual(0)
+    expect(starfieldIndex).toBeLessThan(firstNodeGroup)
+  })
+
+  it('draws connections as curved paths, not straight lines', () => {
+    const { container } = renderDashboard()
+    const svg = container.querySelector('svg[role="img"]')!
+    expect(svg.querySelectorAll('line').length).toBe(0)
+    const edgePaths = [...svg.querySelectorAll('path')].filter((p) => p.getAttribute('stroke'))
+    expect(edgePaths.length).toBeGreaterThan(0)
+    for (const path of edgePaths) {
+      // A quadratic curve's command is "Q"; a straight segment would use "L".
+      expect(path.getAttribute('d')).toContain('Q')
+    }
+  })
+
+  it('gives each department a distinguishable identity, not just an opacity step', () => {
+    const { container } = renderDashboard()
+    const legendDots = [...container.querySelectorAll('.mt-2 span > span.rounded-full')]
+    const colours = legendDots.map((dot) => (dot as HTMLElement).style.backgroundColor)
+    expect(colours.length).toBeGreaterThanOrEqual(2)
+    // The old opacity-only encoding gave every department the same rgb triple
+    // and differed only in the alpha channel; asserting the full colour
+    // string is distinct per department (not just present) is what actually
+    // catches that regression.
+    expect(new Set(colours).size).toBe(colours.length)
+  })
+})
+

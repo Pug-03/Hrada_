@@ -114,6 +114,32 @@ describe('reduced motion', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'ปิยะ ส.' })).toBeTruthy())
   })
 
+  it('renders the idle glow at a fixed opacity, with no twinkle loop', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <App />
+      </MemoryRouter>,
+    )
+    const glow = container.querySelector('[data-idle-glow="emp-02"]') as SVGElement
+    // Framer Motion writes the resolved value straight to the inline style
+    // when there is nothing to loop; an active twinkle would instead leave a
+    // requestAnimationFrame-driven transform with no single resting value.
+    expect(glow.style.opacity).toBe('0.3')
+  })
+
+  it('keeps the decorative starfield and department colours static either way', () => {
+    // Neither is animated in the first place, so reduced motion changes
+    // nothing about them — this just confirms they still render.
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(
+      container.querySelector('[data-constellation-starfield]')?.querySelectorAll('circle').length,
+    ).toBeGreaterThan(20)
+  })
+
   it('strips non-essential motion in the stylesheet as a backstop', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
     expect(css).toContain('@media (prefers-reduced-motion: reduce)')

@@ -47,22 +47,6 @@ export const motion = {
 } as const
 
 /**
- * Departments are encoded by tint of a single token, not by inventing hues.
- *
- * Five distinct brand colours would mean five values that are not in §3.1, and
- * a categorical rainbow competes with the one thing `sky` is supposed to mean.
- * The clusters are already separated in space and labelled in the legend, so
- * opacity steps of `sky` carry the grouping without spending new colour.
- */
-export const departmentTint: Record<string, number> = {
-  Marketing: 1,
-  Data: 0.82,
-  Product: 0.64,
-  Operations: 0.46,
-  Sales: 0.3,
-}
-
-/**
  * A palette colour at a given alpha. The only sanctioned way to soften a
  * token: the hue is never redefined, only its opacity, so nothing can drift
  * outside §3.1 by degrees.
@@ -75,14 +59,80 @@ export function withAlpha(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`
 }
 
-const skyAlpha = (alpha: number) => withAlpha(colors.sky, alpha)
 
-export function departmentHalo(department: string): string {
-  return skyAlpha(0.08 + (departmentTint[department] ?? 0.5) * 0.16)
+interface Hsl {
+  h: number
+  s: number
+  l: number
 }
 
+function hexToHsl(hex: string): Hsl {
+  const raw = hex.replace('#', '')
+  const r = parseInt(raw.slice(0, 2), 16) / 255
+  const g = parseInt(raw.slice(2, 4), 16) / 255
+  const b = parseInt(raw.slice(4, 6), 16) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  if (max === min) return { h: 0, s: 0, l: l * 100 }
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h: number
+  if (max === r) h = (g - b) / d + (g < b ? 6 : 0)
+  else if (max === g) h = (b - r) / d + 2
+  else h = (r - g) / d + 4
+  return { h: h * 60, s: s * 100, l: l * 100 }
+}
+
+function hslString({ h, s, l }: Hsl, alpha: number): string {
+  return `hsla(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l.toFixed(1)}%, ${alpha.toFixed(3)})`
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+
+const SKY_HSL = hexToHsl(colors.sky)
+const SIGNAL_HSL = hexToHsl(colors.signal)
+
+/**
+ * Order the constellation clusters render in — Marketing sits at the `sky`
+ * end of the blend, Sales at the `signal` end, the other three spaced evenly
+ * between. Kept in one place so the legend and the layout agree on it.
+ */
+export const DEPARTMENT_ORDER = ['Marketing', 'Data', 'Product', 'Operations', 'Sales']
+
+/**
+ * Five department identities, and still zero new hues.
+ *
+ * Each one is a point on the straight line between the `sky` and `signal`
+ * tokens in HSL space — never a hue outside that segment. Interpolating
+ * lightness and saturation alongside hue (rather than only varying opacity,
+ * as an earlier version of this did) is what makes five points actually
+ * distinguishable at a glance instead of five shades of the same translucent
+ * blue.
+ */
+function departmentHsl(department: string): Hsl {
+  const index = DEPARTMENT_ORDER.indexOf(department)
+  const steps = DEPARTMENT_ORDER.length - 1
+  const t = index === -1 ? 0.5 : index / steps
+  return {
+    h: lerp(SKY_HSL.h, SIGNAL_HSL.h, t),
+    s: lerp(SKY_HSL.s, SIGNAL_HSL.s, t),
+    l: lerp(SKY_HSL.l, SIGNAL_HSL.l, t),
+  }
+}
+
+export function departmentColor(department: string, alpha = 1): string {
+  return hslString(departmentHsl(department), alpha)
+}
+
+/** The ambient ring behind a node — present but soft at rest. */
+export function departmentHalo(department: string): string {
+  return departmentColor(department, 0.24)
+}
+
+/** Legend key and anything else that needs the identity to actually read. */
 export function departmentSwatch(department: string): string {
-  return skyAlpha(0.25 + (departmentTint[department] ?? 0.5) * 0.75)
+  return departmentColor(department, 0.95)
 }
 
 /**
