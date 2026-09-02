@@ -4,6 +4,12 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  // GitHub Pages serves this repo from /Hrada_/, not from the domain root, so
+  // every built asset URL needs that prefix — otherwise the deployed page
+  // requests /assets/... at the domain root and gets a 404 from Pages' own
+  // catch-all. Vite rewrites index.html's asset references and every
+  // import.meta.url-based path to match this automatically at build time.
+  base: '/Hrada_/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },

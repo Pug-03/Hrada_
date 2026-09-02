@@ -21,7 +21,7 @@ Requires Node 20 or newer.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5173/Hrada_/
 ```
 
 There is no backend, no database, and no LLM call at runtime. All data is TypeScript in
@@ -161,6 +161,32 @@ Mobility, Workload, Skill Coverage).
   reporting true, so the reduced branches actually execute.
 - **`src/components/ui/NumericText.test.tsx`** — the splitter that puts figures inside prose into
   the mono face.
+
+## Deployment
+
+Pushing to `main` builds and publishes the app to GitHub Pages automatically, via
+`.github/workflows/deploy.yml` (the official `actions/deploy-pages` flow — no `gh-pages` branch
+involved). The one manual step is enabling Pages itself in the repo's **Settings → Pages**,
+setting **Source** to **GitHub Actions**; after that, every push deploys on its own.
+
+Two things follow from being served at a subpath rather than a domain root:
+
+- **`base: '/Hrada_/'`** in `vite.config.ts` — GitHub Pages serves this repo from
+  `https://<user>.github.io/Hrada_/`, not from the domain root, so every built asset URL needs
+  that prefix. Vite rewrites `index.html`'s asset references and the dev server's own URL to
+  match automatically; nothing else in the app needs to know its base path.
+- **`HashRouter`, not `BrowserRouter`** (`src/main.tsx`) — GitHub Pages is a static file host with
+  no server-side rewrite rule, so a clean URL like `/Hrada_/dashboard` requested directly (a
+  refresh, a bookmark, a shared link) 404s before React ever loads. `HashRouter` keeps everything
+  after `#` client-side only — the server only ever sees a request for `/Hrada_/` itself — so
+  every route works under direct navigation and refresh with zero server configuration. The
+  trade-off is a `#` in the URL (`/Hrada_/#/dashboard`); the alternative, a `404.html`
+  redirect-script trick that preserves clean URLs, was skipped here as an extra moving part for a
+  win this project has no use for.
+
+localStorage is scoped by origin, not by path, so the persisted stores (session, language,
+learning progress, candidate decisions) are unaffected by any of this — they behave identically
+under the `/Hrada_/` subpath as they do at `localhost:5173/Hrada_/` in development.
 
 ## Out of scope
 
