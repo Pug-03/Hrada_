@@ -9,7 +9,7 @@ interface SessionState {
   role: UserRole | null
   /** Which department a Manager leads — scopes everything they can see. */
   managerDepartment: Department | null
-  /** Which of the 14 people an Employee is signed in as. */
+  /** Which person an Employee is signed in as. */
   employeeId: string | null
   signInAsHR: () => void
   signInAsCEO: () => void

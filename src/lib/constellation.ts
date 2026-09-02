@@ -24,28 +24,61 @@ export interface ConstellationLayout {
   departments: Department[]
 }
 
-export const VIEW = { width: 900, height: 520 }
+/**
+ * Enlarged from the original 900×520 when the roster grew from 14 to 114 —
+ * five clusters of 18–30 people need real room between them, not just
+ * between individual nodes within one.
+ */
+export const VIEW = { width: 1180, height: 700 }
 
 /**
- * Hand-placed cluster centres. A real force simulation drifts between reloads
- * and reads as noise; fixed anchors with local relaxation keep the composition
- * stable while the people inside a department still settle naturally.
+ * Ceiling on how far a node may travel under cursor drift. Defined here,
+ * ahead of the layout algorithm, because the layout's own minimum separation
+ * has to be built with this in mind: two adjacent nodes can each drift this
+ * far toward each other, so "never overlap" has to hold at rest distance
+ * minus twice this, not at rest distance alone. See MAGNET_RADIUS below for
+ * how close the cursor must get to trigger it.
+ *
+ * Tuned down from an earlier 9 when the field densified from 14 to 114
+ * nodes — the same "lean toward the cursor" effect, sized to a field with
+ * far less open space per node.
+ */
+export const MAGNET_MAX_PULL = 6
+
+/**
+ * Hand-placed cluster centres, one per department, sized for the approved
+ * distribution (Marketing 22, Sales 26, Data 18, Product 30, Operations 18).
+ * A real force simulation drifts between reloads and reads as noise; fixed
+ * anchors with local relaxation keep the composition stable while the people
+ * inside a department still settle naturally. Product and Sales — the two
+ * largest clusters — sit in opposite corners with the most open canvas
+ * around them; the smaller Data and Operations clusters share the tighter
+ * middle band.
  */
 const CLUSTER_CENTRES: Record<Department, { x: number; y: number }> = {
-  Marketing: { x: 235, y: 152 },
-  Data: { x: 648, y: 138 },
-  Product: { x: 722, y: 348 },
-  Operations: { x: 452, y: 428 },
-  Sales: { x: 172, y: 356 },
+  Marketing: { x: 270, y: 170 },
+  Data: { x: 720, y: 150 },
+  Product: { x: 940, y: 470 },
+  Operations: { x: 560, y: 560 },
+  Sales: { x: 220, y: 480 },
 }
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 
 /**
- * §4 — a light approximated layout. Members start on a ring around their
- * department centre, then a fixed number of relaxation passes push apart any
- * pair that would overlap while a weak spring holds each node near its
- * cluster. Deterministic: the same data always produces the same picture.
+ * §4 — a light approximated layout. Members start on a sunflower-packed disc
+ * around their department centre — radius grows with the square root of
+ * index, not linearly, so area (not radius) scales with headcount, the same
+ * technique the decorative starfield uses — then a fixed number of
+ * relaxation passes push apart any pair that would overlap while a weak
+ * spring holds each node near its cluster. Deterministic: the same data
+ * always produces the same picture.
+ *
+ * The minimum separation enforced during relaxation reserves 2×
+ * MAGNET_MAX_PULL of headroom beyond each pair's own radii, so that even if
+ * cursor drift pulls two adjacent nodes maximally toward each other, they
+ * still cannot touch. This is what constellation.test.ts's drift sweep
+ * verifies holds for every cursor position, not just at rest.
  */
 export function layoutConstellation(
   employees: Employee[],
@@ -64,18 +97,22 @@ export function layoutConstellation(
   for (const department of departments) {
     const members = employees.filter((e) => e.department === department)
     const centre = CLUSTER_CENTRES[department] ?? { x: VIEW.width / 2, y: VIEW.height / 2 }
-    const ringRadius = 30 + members.length * 9
+    // Sunflower packing: radius ∝ √(rank), angle steps by the golden angle —
+    // even coverage of the disc with no clumping, area growing with N rather
+    // than a single ring's circumference growing with N.
+    const spacing = 14
     members.forEach((employee, i) => {
       const angle = i * GOLDEN_ANGLE + departments.indexOf(department)
+      const radius = spacing * Math.sqrt(i + 0.5)
       const mass = totalSkillLevel(employee)
       const intensity = (mass - minMass) / massRange
       nodes.push({
         id: employee.id,
         employee,
         department,
-        x: centre.x + Math.cos(angle) * ringRadius,
-        y: centre.y + Math.sin(angle) * ringRadius,
-        r: 7 + intensity * 9,
+        x: centre.x + Math.cos(angle) * radius,
+        y: centre.y + Math.sin(angle) * radius,
+        r: 6 + intensity * 8,
         intensity,
         overloaded: employee.workload > 85,
       })
@@ -83,7 +120,8 @@ export function layoutConstellation(
   }
 
   // Relaxation: separate overlapping nodes, keep everyone near their cluster.
-  const PASSES = 90
+  const DRIFT_HEADROOM = MAGNET_MAX_PULL * 2
+  const PASSES = 140
   for (let pass = 0; pass < PASSES; pass++) {
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
@@ -92,7 +130,7 @@ export function layoutConstellation(
         const dx = b.x - a.x
         const dy = b.y - a.y
         const distance = Math.hypot(dx, dy) || 0.001
-        const minDistance = a.r + b.r + 22
+        const minDistance = a.r + b.r + 14 + DRIFT_HEADROOM
         if (distance >= minDistance) continue
         const push = (minDistance - distance) / 2
         const ux = dx / distance
@@ -105,8 +143,8 @@ export function layoutConstellation(
     }
     for (const node of nodes) {
       const centre = CLUSTER_CENTRES[node.department]
-      node.x += (centre.x - node.x) * 0.02
-      node.y += (centre.y - node.y) * 0.02
+      node.x += (centre.x - node.x) * 0.015
+      node.y += (centre.y - node.y) * 0.015
       node.x = Math.min(VIEW.width - node.r - 12, Math.max(node.r + 12, node.x))
       node.y = Math.min(VIEW.height - node.r - 12, Math.max(node.r + 12, node.y))
     }
@@ -128,19 +166,12 @@ export function layoutConstellation(
 
 /**
  * How close the cursor must get, in view units, before a node leans toward it.
- * The viewBox is 900×520, so this is roughly the radius of one department
- * cluster — near enough that the pull reads as local, not as the whole canvas
- * swaying.
+ * Roughly the radius of one department cluster on the current 1180×700
+ * canvas — near enough that the pull reads as local, not as the whole canvas
+ * swaying. MAGNET_MAX_PULL itself is defined above, next to the layout code
+ * that has to build its safety margin around it.
  */
 export const MAGNET_RADIUS = 140
-
-/**
- * Ceiling on how far a node may travel. Nodes are separated by at least
- * `a.r + b.r + 22` during layout, so a displacement of 9 cannot make two of
- * them touch even when they lean toward each other from opposite sides, and it
- * is small enough that a person never appears to leave their department.
- */
-export const MAGNET_MAX_PULL = 9
 
 export interface Vec2 {
   dx: number
@@ -199,7 +230,7 @@ export function edgeTouches(edge: { a: string; b: string }, nodeId: string): boo
 /**
  * What the hover state does to one node's opacity.
  *
- * Dimming is the point of the interaction: with 14 people and every shared
+ * Dimming is the point of the interaction: with a hundred-plus people and every shared
  * skill drawn, the picture is dense enough that highlighting alone does not
  * separate a person's connections from the rest of the field.
  */

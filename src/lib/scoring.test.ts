@@ -43,10 +43,38 @@ const nicha = () => getEmployee('emp-08')
 const thanakorn = () => getEmployee('emp-05')
 const phum = () => getEmployee('emp-14')
 
+const ORIGINAL_FOURTEEN_IDS = [
+  'emp-01', 'emp-02', 'emp-03', 'emp-04', 'emp-05', 'emp-06', 'emp-07',
+  'emp-08', 'emp-09', 'emp-10', 'emp-11', 'emp-12', 'emp-13', 'emp-14',
+]
+
 describe('dataset integrity', () => {
-  it('holds the 14 people the spec locks', () => {
-    expect(EMPLOYEES).toHaveLength(14)
-    expect(new Set(EMPLOYEES.map((e) => e.id)).size).toBe(14)
+  it('keeps the 14 hand-authored people from the spec exactly as locked', () => {
+    // §9.3's 14 must survive any expansion of the roster untouched — this is
+    // the one check that would catch a generator accidentally overwriting or
+    // renumbering one of them.
+    for (const id of ORIGINAL_FOURTEEN_IDS) expect(() => getEmployee(id)).not.toThrow()
+    expect(getEmployee('emp-01').nameLatin).toBe('Jenjira W.')
+    expect(getEmployee('emp-02').nameLatin).toBe('Piya S.')
+    expect(getEmployee('emp-14').nameLatin).toBe('Phum T.')
+  })
+
+  it('gives every employee, hand-authored or generated, a unique id', () => {
+    expect(new Set(EMPLOYEES.map((e) => e.id)).size).toBe(EMPLOYEES.length)
+  })
+
+  it('rounds the roster out to the approved department distribution', () => {
+    // Marketing 22, Sales 26, Data 18, Product 30, Operations 18 — 114 total.
+    const byDepartment = new Map<string, number>()
+    for (const e of EMPLOYEES) byDepartment.set(e.department, (byDepartment.get(e.department) ?? 0) + 1)
+    expect(Object.fromEntries(byDepartment)).toEqual({
+      Marketing: 22,
+      Sales: 26,
+      Data: 18,
+      Product: 30,
+      Operations: 18,
+    })
+    expect(EMPLOYEES).toHaveLength(114)
   })
 
   it('tracks 18 skills across 5 categories', () => {
@@ -91,7 +119,14 @@ describe('dataset integrity', () => {
   it('carries the employment types the spec names', () => {
     expect(getEmployee('emp-14').employmentType).toBe('Intern')
     expect(getEmployee('emp-08').employmentType).toBe('Contract')
-    expect(EMPLOYEES.filter((e) => e.employmentType === 'Full-time')).toHaveLength(12)
+    // Phum and Nicha are the only two non-Full-time people the spec locks;
+    // every generated employee is Full-time, so the rest of the roster
+    // (whatever size it ends up) should all be Full-time too.
+    const nonFullTime = EMPLOYEES.filter((e) => e.employmentType !== 'Full-time')
+    expect(nonFullTime.map((e) => e.id).sort()).toEqual(['emp-08', 'emp-14'])
+    expect(EMPLOYEES.filter((e) => e.employmentType === 'Full-time')).toHaveLength(
+      EMPLOYEES.length - 2,
+    )
   })
 
   it('offers 3 jobs, 8 candidates, 3 projects and 12 learning items', () => {
@@ -224,7 +259,14 @@ describe('selectTeam (§10.4)', () => {
   })
 
   it('warns about a member over 90% workload and names a backup', () => {
-    const team = selectTeam(getProject('proj-product-analytics'))
+    // With the full 114-person roster the greedy algorithm has enough
+    // choice that it never needs to reach for an overloaded person on this
+    // project — a real improvement, not a regression, but it means this
+    // mechanism needs a pool small enough to force the trade-off to prove
+    // it still fires when it has to. The original 14 is exactly that pool:
+    // Piya is the strongest SQL/Data Analysis person in it despite being at
+    // 92% workload, so the algorithm still has to pick her there.
+    const team = selectTeam(getProject('proj-product-analytics'), EMPLOYEES.slice(0, 14))
     const atRisk = team.members.find((m) => m.workloadRisk)
     expect(atRisk?.employee.id).toBe('emp-02')
     expect(atRisk?.backupId).toBeTruthy()
@@ -293,9 +335,15 @@ describe('calcPromotionReadiness (§10.6)', () => {
     expect(calcPromotionReadiness(tenured).score).toBe(calcPromotionReadiness(three).score)
   })
 
-  it('names exactly the three high-potential people the spec plants', () => {
+  it('always includes the three high-potential people the spec plants', () => {
+    // At 14 people this was the exhaustive list; at 114 a realistic org has
+    // other strong performers too (confirmed: they stay a small minority,
+    // not everyone) — what §9.4 actually requires is that these three are
+    // never crowded out, not that nobody else may ever qualify.
     const high = EMPLOYEES.filter((e) => calcPromotionReadiness(e).isHighPotential).map((e) => e.nameLatin)
-    expect(high.sort()).toEqual(['Jenjira W.', 'Kitti R.', 'Mark C.'])
+    expect(high).toEqual(expect.arrayContaining(['Jenjira W.', 'Kitti R.', 'Mark C.']))
+    // Still a minority of the org, or "High Potential" stops meaning anything.
+    expect(high.length).toBeLessThan(EMPLOYEES.length * 0.25)
   })
 })
 
@@ -343,7 +391,7 @@ describe('calcWorkforceHealth (§10.7)', () => {
   it('breaks coverage down per department', () => {
     const rows = skillCoverageByDepartment()
     expect(rows).toHaveLength(5)
-    expect(rows.reduce((sum, r) => sum + r.headcount, 0)).toBe(14)
+    expect(rows.reduce((sum, r) => sum + r.headcount, 0)).toBe(EMPLOYEES.length)
   })
 
   it('derives demand only from open jobs and active projects', () => {

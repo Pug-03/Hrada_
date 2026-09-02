@@ -112,6 +112,8 @@ export const en = {
   'employees.empty.title': 'Nobody matches “{query}”',
   'employees.empty.action': 'Try a department name such as Marketing or Data',
   'employees.pick': 'Choose an employee',
+  'role.showMore': '+{count} more',
+  'role.noMatches': 'No one matches “{query}”',
   'employees.unclassified': 'Does not meet the criteria for a classification yet',
 
   // ── profile ──────────────────────────────────────────────────────────────

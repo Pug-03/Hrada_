@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, RotateCcw } from 'lucide-react'
+import { ArrowRight, ChevronDown, RotateCcw, Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { EntryBackdrop } from '@/components/EntryBackdrop'
@@ -11,6 +12,14 @@ import type { Department } from '@/data/types'
 import { useI18n, useName, type TranslationKey } from '@/lib/i18n'
 import { homeFor } from '@/lib/permissions'
 import { useSession } from '@/store/session'
+
+const EMPLOYEES_BY_DEPARTMENT: Record<Department, typeof EMPLOYEES> = ORG.departments.reduce(
+  (acc, department) => {
+    acc[department] = EMPLOYEES.filter((e) => e.department === department)
+    return acc
+  },
+  {} as Record<Department, typeof EMPLOYEES>,
+)
 
 /**
  * §11 Screen 1 — pick a role, and see what the product is for before picking.
@@ -30,6 +39,21 @@ export default function Entry() {
   const reduced = useReducedMotion()
   const { t } = useI18n()
   const name = useName()
+  const [query, setQuery] = useState('')
+  const [openDept, setOpenDept] = useState<Department | null>(null)
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return null
+    return EMPLOYEES.filter(
+      (e) =>
+        e.name.includes(q) ||
+        e.nameLatin.toLowerCase().includes(q) ||
+        e.title.toLowerCase().includes(q) ||
+        e.department.toLowerCase().includes(q),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
 
   const enter = (fn: () => void) => {
     fn()
@@ -110,18 +134,68 @@ export default function Entry() {
         <Card className="p-4 sm:col-span-2" tone="flat">
           <h2 className="text-body font-semibold">{t('entry.employee.title')}</h2>
           <p className="mt-1 text-small text-haze">{t('entry.employee.hint')}</p>
-          <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {EMPLOYEES.map((employee) => (
-              <button
-                key={employee.id}
-                onClick={() => enter(() => useSession.getState().signInAsEmployee(employee.id))}
-                className="flex items-baseline justify-between gap-2 rounded-lg border border-line/70 px-3 py-2 text-left text-small transition-[background-color,transform] duration-150 hover:-translate-y-0.5 hover:bg-panel-raised"
-              >
-                <span className="truncate">{name(employee)}</span>
-                <span className="shrink-0 text-micro text-haze">{employee.title}</span>
-              </button>
-            ))}
-          </div>
+
+          <label className="focus-ring-within mt-3 flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2">
+            <Search size={14} className="shrink-0 text-haze" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('employees.search')}
+              className="w-full bg-transparent text-small outline-none placeholder:text-haze/70"
+            />
+          </label>
+
+          {matches ? (
+            matches.length === 0 ? (
+              <p className="mt-3 text-small text-haze">{t('role.noMatches', { query })}</p>
+            ) : (
+              <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                {matches.map((employee) => (
+                  <EmployeeButton key={employee.id} employee={employee} onPick={enter} name={name} />
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="mt-3 space-y-1.5">
+              {ORG.departments.map((department) => {
+                const members = EMPLOYEES_BY_DEPARTMENT[department]
+                const isOpen = openDept === department
+                return (
+                  <div key={department} className="rounded-lg border border-line/70">
+                    <button
+                      onClick={() => setOpenDept(isOpen ? null : department)}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-small transition-colors duration-150 hover:bg-panel-raised"
+                      aria-expanded={isOpen}
+                    >
+                      <span>{department}</span>
+                      <span className="flex items-center gap-2 text-micro text-haze">
+                        <NumericText>{t('common.people', { count: members.length })}</NumericText>
+                        {!isOpen ? (
+                          <span className="hidden truncate sm:inline">
+                            {members
+                              .slice(0, 4)
+                              .map((e) => name(e))
+                              .join(', ')}
+                          </span>
+                        ) : null}
+                        <ChevronDown
+                          size={13}
+                          className={`shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+                        />
+                      </span>
+                    </button>
+                    {isOpen ? (
+                      <div className="grid gap-1.5 border-t border-line/70 p-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {members.map((employee) => (
+                          <EmployeeButton key={employee.id} employee={employee} onPick={enter} name={name} />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -132,5 +206,25 @@ export default function Entry() {
         </p>
       </Card>
     </div>
+  )
+}
+
+function EmployeeButton({
+  employee,
+  onPick,
+  name,
+}: {
+  employee: (typeof EMPLOYEES)[number]
+  onPick: (fn: () => void) => void
+  name: (employee: (typeof EMPLOYEES)[number]) => string
+}) {
+  return (
+    <button
+      onClick={() => onPick(() => useSession.getState().signInAsEmployee(employee.id))}
+      className="flex items-baseline justify-between gap-2 rounded-lg border border-line/70 px-3 py-2 text-left text-small transition-[background-color,transform] duration-150 hover:-translate-y-0.5 hover:bg-panel-raised"
+    >
+      <span className="truncate">{name(employee)}</span>
+      <span className="shrink-0 text-micro text-haze">{employee.title}</span>
+    </button>
   )
 }

@@ -9,7 +9,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '@/App'
-import { calcWorkforceHealth } from '@/lib/scoring'
+import { InsightGroup } from '@/pages/Insights'
+import { calcWorkforceHealth, type Insight } from '@/lib/scoring'
 import { useDecisions } from '@/store/decisions'
 import { useLearning } from '@/store/learning'
 import { useSession } from '@/store/session'
@@ -191,20 +192,44 @@ describe('Insights grouping (§11 Screen 8)', () => {
   beforeEach(() => useSession.getState().signInAsHR())
 
   it('caps At-Risk at five and offers the rest behind an expand', () => {
-    renderAt('/insights')
-    const health = calcWorkforceHealth()
-    expect(health.atRiskSkills.length).toBeGreaterThan(5)
+    // At 114 people the real dataset currently produces only 3 at-risk
+    // skills — a healthy consequence of a bigger org covering more of them,
+    // not a regression, but it means the cap-and-expand affordance has
+    // nothing to demonstrate in the live render any more. Exercising it
+    // through InsightGroup directly with a synthetic 7-item fixture keeps
+    // this test meaningful regardless of how many at-risk skills the
+    // dataset happens to produce at any given size.
+    const items: Insight[] = Array.from({ length: 7 }, (_, i) => ({
+      id: `fixture-${i}`,
+      severity: 'warn',
+      kind: 'at-risk-skill',
+      to: '/learning',
+      payload: {
+        kind: 'at-risk-skill',
+        skillId: 'sql',
+        skillName: `Fixture Skill ${i}`,
+        bar: 4.0,
+        ownerId: 'emp-02',
+        ownerLevel: 4.7,
+        secondBestId: 'emp-11',
+        secondBestLevel: 3.4 - i * 0.1,
+      },
+    }))
+    const group = { kind: 'at-risk-skill' as const, titleKey: 'insights.group.atRisk' as const, hintKey: 'insights.group.atRisk.hint' as const, cap: 5, capNoteKey: 'insights.group.atRisk.note' as const }
 
-    const atRiskShown = screen.getAllByText(withText(/มีคนเดียวที่ถึงระดับ 4\.0$/))
-    expect(atRiskShown).toHaveLength(5)
+    render(
+      <MemoryRouter>
+        <InsightGroup group={group} items={items} bar={4.0} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getAllByText(/Fixture Skill/)).toHaveLength(5)
 
     const expand = screen.getByText((_, node) =>
       (node?.textContent ?? '').startsWith('แสดงทั้งหมด') && node?.tagName === 'BUTTON',
     )
     fireEvent.click(expand)
-    expect(screen.getAllByText(withText(/มีคนเดียวที่ถึงระดับ 4\.0$/))).toHaveLength(
-      health.atRiskSkills.length,
-    )
+    expect(screen.getAllByText(/Fixture Skill/)).toHaveLength(7)
   })
 
   it('shows the five thinnest benches first', () => {

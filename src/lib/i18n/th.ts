@@ -110,6 +110,8 @@ export const th: Record<TranslationKey, string> = {
   'employees.empty.title': 'ไม่พบใครที่ตรงกับ “{query}”',
   'employees.empty.action': 'ลองพิมพ์ชื่อแผนก เช่น Marketing หรือ Data',
   'employees.pick': 'เลือกพนักงาน',
+  'role.showMore': 'อีก {count} คน',
+  'role.noMatches': 'ไม่พบใครที่ตรงกับ “{query}”',
   'employees.unclassified': 'ยังไม่เข้าเกณฑ์การจัดกลุ่ม',
 
   'profile.skills.title': 'Skills',

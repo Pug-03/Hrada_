@@ -18,9 +18,9 @@ import { useSession } from '@/store/session'
  * from and the rule that produced it, and every card ends in a link to the
  * screen where something can actually be done about it.
  *
- * At-Risk is the long group on this dataset — a 14-person company is one deep
- * in most things — so it shows the five thinnest benches first and expands to
- * the rest on request, rather than burying the critical finding under them.
+ * At-Risk can still be the long group on this dataset, so it shows the five
+ * thinnest benches first and expands to the rest on request, rather than
+ * burying the critical finding under them.
  */
 const GROUPS: {
   kind: InsightKind
@@ -82,7 +82,7 @@ export default function Insights() {
   )
 }
 
-function InsightGroup({
+export function InsightGroup({
   group,
   items,
   bar,

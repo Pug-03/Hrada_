@@ -23,6 +23,7 @@ import {
   twinklePlan,
   type ConstellationLayout,
   type ConstellationNode,
+  type Vec2,
 } from '@/lib/constellation'
 import { colors, departmentHalo, departmentSwatch, motion as motionTokens } from '@/lib/theme'
 import { useName, useT } from '@/lib/i18n'
@@ -71,6 +72,8 @@ const TILT_SPRING = { stiffness: 120, damping: 22, mass: 0.6 }
  * circle into an ellipse or soften an edge.
  */
 const TILT_MAX_DEG = 1.6
+/** A stable zero vector — reduced motion returns this rather than allocating a fresh object every frame. */
+const NO_DRIFT: Vec2 = { dx: 0, dy: 0 }
 /**
  * The idle glow's resting opacity and how far the twinkle moves it in either
  * direction. Small on purpose — requirement is that it "feels alive," not
@@ -78,6 +81,8 @@ const TILT_MAX_DEG = 1.6
  */
 const IDLE_GLOW_BASE = 0.3
 const IDLE_GLOW_AMPLITUDE = 0.09
+/** ~12 updates a second for the twinkle — plenty for a multi-second breathe. */
+const TWINKLE_STEP_MS = 80
 
 export function SkillConstellation({
   employees,
@@ -130,6 +135,20 @@ export function SkillConstellation({
   const rawTiltY = useMotionValue(0)
   const tiltX = useSpring(rawTiltX, TILT_SPRING)
   const tiltY = useSpring(rawTiltY, TILT_SPRING)
+
+  /**
+   * One shared clock for every animated-but-not-interactive element, rather
+   * than each one running its own. The idle twinkle used to be 114
+   * independent Framer animation controllers, each doing its own easing-curve
+   * evaluation and DOM write, forever, whether or not anyone was looking at
+   * the page. One clock, quantised to ~12 updates a second for the twinkle
+   * specifically — a 3–6 second breathing cycle does not need 60fps
+   * precision — cuts that to 114 cheap sine reads off one shared value.
+   * EdgePulse (the travelling hover light) keeps the unthrottled clock, since
+   * that one does benefit from smooth motion along the curve.
+   */
+  const clock = useTime()
+  const twinkleClock = useTransform(clock, (t) => Math.round(t / TWINKLE_STEP_MS) * TWINKLE_STEP_MS)
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
@@ -276,6 +295,7 @@ export function SkillConstellation({
                     from={edge.from.id === hovered.id ? edge.from : edge.to}
                     to={edge.from.id === hovered.id ? edge.to : edge.from}
                     pointer={pointer}
+                    clock={clock}
                   />
                 ))}
             </g>
@@ -292,6 +312,7 @@ export function SkillConstellation({
               pointer={pointer}
               reduced={Boolean(reduced)}
               displayName={name(node.employee)}
+              twinkleClock={twinkleClock}
               onHover={setHovered}
               onActivate={activate}
             />
@@ -337,15 +358,23 @@ export function SkillConstellation({
 }
 
 /** Drift for one point, derived from the shared pointer. */
+/**
+ * Drift for one point, derived from the shared pointer.
+ *
+ * magnetOffset does a hypot, a normalise and a couple of conditionals — cheap
+ * once, but this used to call it twice per point per frame (once to read
+ * .dx, once to read .dy, throwing away the other half each time), across
+ * every node and both endpoints of every edge. At 114 nodes / 830 edges that
+ * was 3,548 calls a frame instead of 114. One combined useTransform computes
+ * the vector once; dx and dy are then cheap reads off that single result.
+ */
 function useDrift(point: { x: number; y: number }, pointer: Pointer, reduced: boolean) {
-  const dx = useTransform<number, number>(
+  const offset = useTransform<number, Vec2>(
     [pointer.x, pointer.y, pointer.strength],
-    ([px, py, s]) => (reduced ? 0 : magnetOffset(point, px, py, s).dx),
+    ([px, py, s]) => (reduced ? NO_DRIFT : magnetOffset(point, px, py, s)),
   )
-  const dy = useTransform<number, number>(
-    [pointer.x, pointer.y, pointer.strength],
-    ([px, py, s]) => (reduced ? 0 : magnetOffset(point, px, py, s).dy),
-  )
+  const dx = useTransform(offset, (o) => o.dx)
+  const dy = useTransform(offset, (o) => o.dy)
   return { dx, dy }
 }
 
@@ -402,13 +431,16 @@ function EdgePulse({
   from,
   to,
   pointer,
+  clock,
 }: {
   from: ConstellationNode
   to: ConstellationNode
   pointer: Pointer
+  clock: MotionValue<number>
 }) {
-  const time = useTime()
-  const progress = useTransform(time, (t) => ((t % PULSE_PERIOD_MS) / PULSE_PERIOD_MS))
+  // Shares the one clock every other ambient element uses, rather than
+  // registering its own useTime() — this used to be one per hovered edge.
+  const progress = useTransform(clock, (t) => ((t % PULSE_PERIOD_MS) / PULSE_PERIOD_MS))
   const fromDrift = useDrift(from, pointer, false)
   const toDrift = useDrift(to, pointer, false)
   const edgeId = `${from.id}-${to.id}`
@@ -450,6 +482,7 @@ function Node({
   pointer,
   reduced,
   displayName,
+  twinkleClock,
   onHover,
   onActivate,
 }: {
@@ -461,6 +494,7 @@ function Node({
   pointer: Pointer
   reduced: boolean
   displayName: string
+  twinkleClock: MotionValue<number>
   onHover: (node: ConstellationNode | null) => void
   onActivate: (node: ConstellationNode) => void
 }) {
@@ -471,6 +505,13 @@ function Node({
     ? 0
     : layout.departments.indexOf(node.department) * motionTokens.constellationStagger
   const twinkle = useMemo(() => twinklePlan(node.id), [node.id])
+  // A cheap sine read off the one shared, throttled clock — replaces what
+  // used to be this node's own independent Framer animation controller
+  // running a keyframe-array easing loop forever, whether or not the tab was
+  // even visible.
+  const idleGlowOpacity = useTransform(twinkleClock, (t) =>
+    reduced ? IDLE_GLOW_BASE : twinkleOpacity(t, twinkle),
+  )
 
   return (
     <motion.g

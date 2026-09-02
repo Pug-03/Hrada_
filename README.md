@@ -123,11 +123,48 @@ be critical — so the two are separated here by asking different questions:
   the level committed. Derived from open jobs and active projects only, since a role someone hopes
   to grow into is not work owed to a client. On this dataset: AI Tools, alone.
 - **At-Risk** — exactly one person in the company holds the skill at 4.0, whether or not there is
-  open work for it. A key-person problem. Eleven skills qualify, which is the honest reading of a
-  14-person company: it is one deep in almost everything. The Insights screen shows the five
-  thinnest benches and expands to the rest.
+  open work for it. A key-person problem. At 114 people that is 3 skills rather than the 11 it was
+  at 14 — a bigger org naturally covers more ground, and that consolidation is expected, not a
+  regression. Two of the three (UX Research, Financial Analysis) are load-bearing §9.4 planted
+  cases the generated population is built to never disturb. The Insights screen shows the five
+  thinnest benches and expands to the rest, for whichever count the dataset produces.
 
 The two sets cannot intersect: critical means zero owners, at-risk means one.
+
+### 14 hand-authored people, 100 generated
+
+`src/data/employees.ts` exports 14 people locked verbatim to the original product spec — never
+touch these — plus a synthetic population from `src/data/generateEmployees.ts` that rounds the
+roster out to 114, across the approved distribution:
+
+| Department | Total | Hand-authored | Generated |
+| --- | --- | --- | --- |
+| Marketing | 22 | 4 | 18 |
+| Sales | 26 | 2 | 24 |
+| Data | 18 | 2 | 16 |
+| Product | 30 | 3 | 27 |
+| Operations | 18 | 3 | 15 |
+
+The generator is a seeded PRNG (mulberry32, fixed seed), never `Math.random()` — the same
+"same data, same picture" guarantee the constellation's layout relies on holds for the generated
+population too. Every generated person carries the same shape as the hand-authored 14: skills with
+evidence (≥2 sources once a level clears 3.0), a 6-month history for their top 3 skills, projects,
+occasional learning history, a career goal pointing at one of the 14 existing target roles.
+
+Three skill levels are hard-capped below 4.0 for every generated person, no exceptions — AI Tools,
+UX Research, and Financial Analysis — because §9.4's critical-gap and at-risk planted cases depend
+on nobody, and exactly one person respectively, ever crossing that bar. Workload and performance
+are kept from both crossing at once (>85% workload with ≥4.0 performance), so the only two
+Workload Risk cases stay Piya and Wichai. All seven planted cases were re-verified against the full
+114-person roster after generation, not assumed to still hold.
+
+One incidental consequence worth knowing: with 100 more people to choose from, `selectTeam`'s
+greedy algorithm sometimes has enough slack that it no longer needs to reach for an overloaded
+person on a given project, so the Team Matching screen's "Workload Risk warning with a backup
+name" card does not always have something to show for the three fixed projects at their default
+team sizes — a consequence of more realistic choice, not a bug. `ORG.totalHeadcount` moved from
+126 to 120, since 114 modeled out of 126 no longer reads as "a sample of a bigger company," and
+120 keeps a small, deliberate gap instead.
 
 ## Design
 
@@ -149,12 +186,18 @@ Mobility, Workload, Skill Coverage).
 
 ## Tests
 
-120 tests across five files:
+238 tests across twelve files. The core ones:
 
-- **`src/lib/scoring.test.ts`** — every scoring function, plus dataset integrity (evidence rules,
-  level ranges, history completeness) and each of the seven cases the brief plants in the data.
+- **`src/lib/scoring.test.ts`** — every scoring function, dataset integrity (evidence rules, level
+  ranges, history completeness, the 14 hand-authored people preserved exactly), and each of the
+  seven cases the brief plants in the data, re-verified against the full 114-person roster.
+- **`src/lib/constellation.test.ts`** / **`src/lib/theme.test.ts`** — the layout's drift-safety
+  guarantee (no two nodes can touch under any cursor position, for the current headcount) and the
+  department colour system staying inside the sky→signal hue range.
 - **`src/test/screens.dom.test.tsx`** — every screen under every role that can open it, failing on
   any console error or warning, plus the permission redirects.
+- **`src/test/role-picker.dom.test.tsx`** — the department-grouped, searchable employee picker
+  (both name forms, regardless of active locale) that replaced a flat 114-name list.
 - **`src/test/mono-numbers.dom.test.tsx`** — walks the rendered DOM of all eleven routes and fails
   on any digit not in the mono face.
 - **`src/test/reduced-motion.dom.test.tsx`** — re-renders every screen with the media query
