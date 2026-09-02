@@ -51,9 +51,9 @@ export function CardHeader({
   return (
     <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
       <div>
-        <h2 className="text-[20px] leading-tight font-semibold">{title}</h2>
+        <h2 className="text-section leading-tight font-semibold">{title}</h2>
         {hint ? (
-          <p className="mt-1 text-[13px] text-haze">
+          <p className="mt-1 text-small text-haze">
             {typeof hint === 'string' ? <NumericText>{hint}</NumericText> : hint}
           </p>
         ) : null}

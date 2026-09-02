@@ -20,7 +20,7 @@ export function AnalysisLoader({ message, rows = 3 }: { message: string; rows?: 
 
   return (
     <div className="rounded-xl border border-line bg-panel p-5" role="status" aria-live="polite">
-      <p className="text-[13px] text-sky">
+      <p className="text-small text-sky">
         <NumericText>{message}</NumericText>
         <span className="num">{'.'.repeat(reduced ? 3 : dots)}</span>
       </p>

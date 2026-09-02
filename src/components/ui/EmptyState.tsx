@@ -25,8 +25,8 @@ export function EmptyState({
       >
         <Icon size={18} />
       </motion.span>
-      <p className="max-w-sm text-[15px] text-text">{title}</p>
-      <div className="text-[13px] text-haze">{action}</div>
+      <p className="max-w-sm text-body text-text">{title}</p>
+      <div className="text-small text-haze">{action}</div>
     </div>
   )
 }

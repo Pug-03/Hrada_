@@ -24,8 +24,8 @@ export default function EmployeeList() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-[28px] leading-tight font-semibold">Employee Skill Profile</h1>
-        <p className="mt-1 text-[13px] text-haze">
+        <h1 className="text-title leading-tight font-semibold">Employee Skill Profile</h1>
+        <p className="mt-1 text-small text-haze">
           {session.role === 'Employee'
             ? 'คุณเห็นเฉพาะโปรไฟล์ของตัวเอง ตามสิทธิ์ของบทบาท Employee'
             : session.role === 'Manager'
@@ -40,7 +40,7 @@ export default function EmployeeList() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="ค้นหาชื่อ ตำแหน่ง หรือแผนก"
-          className="w-full bg-transparent text-[13px] outline-none placeholder:text-haze/70"
+          className="w-full bg-transparent text-small outline-none placeholder:text-haze/70"
         />
       </label>
 
@@ -60,18 +60,18 @@ export default function EmployeeList() {
                 <Card tone="flat" interactive className="h-full p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold">{employee.name}</p>
-                      <p className="truncate text-[13px] text-haze">{employee.title}</p>
+                      <p className="truncate text-body font-semibold">{employee.name}</p>
+                      <p className="truncate text-small text-haze">{employee.title}</p>
                     </div>
                     <Badge tone="muted">{employee.department}</Badge>
                   </div>
                   <p
-                    className="mt-3 text-[11px]"
+                    className="mt-3 text-micro"
                     style={{ color: talent.qualified ? talentColor[talent.type] : undefined }}
                   >
                     {talent.qualified ? talent.type : 'ยังไม่เข้าเกณฑ์การจัดกลุ่ม'}
                   </p>
-                  <div className="mt-3 flex items-baseline justify-between text-[11px] text-haze">
+                  <div className="mt-3 flex items-baseline justify-between text-micro text-haze">
                     <span>Promotion Readiness</span>
                     <Num value={readiness.score * 100} decimals={0} suffix="%" className="text-sky" />
                   </div>

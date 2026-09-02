@@ -53,6 +53,24 @@ describe('§3.1 the palette is closed', () => {
   })
 })
 
+describe('§3.2 the type scale', () => {
+  it('is used by name, never as an arbitrary pixel value', () => {
+    // An arbitrary pixel size renders identically to its named token today,
+    // but it does not follow the token if the scale ever moves, and the editor
+    // flags every one of them.
+    const offenders = files
+      .filter((f) => !f.path.startsWith('test/') && f.path !== 'lib/cn.test.ts')
+      .filter((f) => /\btext-\[\d+px\]/.test(f.source))
+      .map((f) => f.path)
+    expect(offenders).toEqual([])
+  })
+
+  it('declares exactly the six sizes §3.2 allows', () => {
+    const declared = [...css.matchAll(/--text-([a-z]+):/g)].map((m) => m[1]).sort()
+    expect(declared).toEqual(['body', 'display', 'micro', 'section', 'small', 'title'])
+  })
+})
+
 describe('charts carry no light-theme defaults', () => {
   const charts = files.find((f) => f.path === 'components/charts/Charts.tsx')!
 

@@ -24,7 +24,7 @@ export function ToastHost() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, x: 16, scale: 0.98 }}
             transition={reduced ? { duration: 0.12 } : { type: 'spring', stiffness: 300, damping: 26 }}
-            className="pointer-events-auto flex items-center gap-2.5 rounded-lg border border-line bg-panel-raised px-3.5 py-2.5 text-[13px] shadow-lg shadow-black/40"
+            className="pointer-events-auto flex items-center gap-2.5 rounded-lg border border-line bg-panel-raised px-3.5 py-2.5 text-small shadow-lg shadow-black/40"
             onClick={() => dismiss(toast.id)}
             role="status"
           >

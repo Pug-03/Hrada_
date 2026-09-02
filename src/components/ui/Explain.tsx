@@ -22,8 +22,8 @@ export function ScoreBreakdown({
       {components.map((component) => (
         <div key={component.key}>
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[13px]">{component.label}</span>
-            <span className="text-[13px] text-haze">
+            <span className="text-small">{component.label}</span>
+            <span className="text-small text-haze">
               <Num value={component.earned} decimals={1} className="text-sky" />
               <span className="num"> / {component.weight}</span>
             </span>
@@ -34,14 +34,14 @@ export function ScoreBreakdown({
               style={{ width: `${Math.min(100, component.ratio * 100)}%` }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-haze">
+          <p className="mt-1.5 text-micro leading-relaxed text-haze">
             <NumericText>{component.detail}</NumericText>
           </p>
         </div>
       ))}
       <div className="flex items-baseline justify-between border-t border-line pt-3">
-        <span className="text-[13px] font-semibold">{totalLabel}</span>
-        <Num value={total} decimals={1} className="text-[20px] text-sky" />
+        <span className="text-small font-semibold">{totalLabel}</span>
+        <Num value={total} decimals={1} className="text-section text-sky" />
       </div>
     </div>
   )

@@ -62,8 +62,8 @@ export default function Insights() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[28px] leading-tight font-semibold">AI Workforce Insights</h1>
-        <p className="mt-1 text-[13px] text-haze">
+        <h1 className="text-title leading-tight font-semibold">AI Workforce Insights</h1>
+        <p className="mt-1 text-small text-haze">
           {scope === 'team'
             ? `ขอบเขตข้อมูล: ทีม ${session.managerDepartment} เท่านั้น`
             : 'ขอบเขตข้อมูล: ทั้งองค์กร'}{' '}
@@ -95,11 +95,11 @@ function InsightGroup({
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[20px] font-semibold">
+        <h2 className="text-section font-semibold">
           {group.title}
-          <span className="num ml-2 text-[13px] text-haze">{items.length}</span>
+          <span className="num ml-2 text-small text-haze">{items.length}</span>
         </h2>
-        <p className="text-[11px] text-haze">
+        <p className="text-micro text-haze">
           <NumericText>{group.hint}</NumericText>
         </p>
       </div>
@@ -113,7 +113,7 @@ function InsightGroup({
       {hidden > 0 || expanded ? (
         <button
           onClick={() => setExpanded((e) => !e)}
-          className="mt-2.5 text-[13px] text-sky transition-colors duration-150 hover:text-text"
+          className="mt-2.5 text-small text-sky transition-colors duration-150 hover:text-text"
         >
           {expanded ? (
             'ย่อกลับ'
@@ -126,7 +126,7 @@ function InsightGroup({
       ) : null}
 
       {group.capNote && hidden > 0 ? (
-        <p className="mt-1.5 text-[11px] leading-relaxed text-haze">
+        <p className="mt-1.5 text-micro leading-relaxed text-haze">
           <NumericText>{group.capNote}</NumericText>
         </p>
       ) : null}
@@ -159,10 +159,10 @@ function InsightCard({ insight }: { insight: Insight }) {
           aria-expanded={open}
         >
           <div className="min-w-0">
-            <p className="text-[15px] leading-relaxed">
+            <p className="text-body leading-relaxed">
               <NumericText>{insight.title}</NumericText>
             </p>
-            <p className="mt-1 text-[11px] text-haze">แตะเพื่อดูว่าคำนวณจากอะไร</p>
+            <p className="mt-1 text-micro text-haze">แตะเพื่อดูว่าคำนวณจากอะไร</p>
           </div>
           <span className="flex shrink-0 items-center gap-2">
             <Badge tone={tone}>{insight.kind}</Badge>
@@ -184,14 +184,14 @@ function InsightCard({ insight }: { insight: Insight }) {
             >
               <div className="space-y-3 border-t border-line/70 px-4 py-3.5">
                 <div>
-                  <p className="text-[11px] text-haze">คำนวณจาก</p>
-                  <p className="mt-1 text-[13px] leading-relaxed">
+                  <p className="text-micro text-haze">คำนวณจาก</p>
+                  <p className="mt-1 text-small leading-relaxed">
                     <NumericText>{insight.computedFrom}</NumericText>
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-haze">สูตรที่ใช้</p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-haze">
+                  <p className="text-micro text-haze">สูตรที่ใช้</p>
+                  <p className="mt-1 text-small leading-relaxed text-haze">
                     <NumericText>{insight.formula}</NumericText>
                   </p>
                 </div>

@@ -120,13 +120,13 @@ export default function EmployeeProfile() {
             />
           </svg>
           <div>
-            <h1 className="text-[28px] leading-tight font-semibold">{employee.name}</h1>
-            <p className="mt-0.5 text-[13px] text-haze">
+            <h1 className="text-title leading-tight font-semibold">{employee.name}</h1>
+            <p className="mt-0.5 text-small text-haze">
               {employee.title} · {employee.department} · {employee.employmentType}
               <span className="text-haze/70"> · {employee.nameLatin}</span>
             </p>
             {talent ? (
-              <p className="mt-1.5 text-[11px]" style={{ color: talent.qualified ? talentColor[talent.type] : undefined }}>
+              <p className="mt-1.5 text-micro" style={{ color: talent.qualified ? talentColor[talent.type] : undefined }}>
                 {talent.qualified ? talent.type : 'ยังไม่เข้าเกณฑ์การจัดกลุ่ม'} —{' '}
                 <NumericText>{talent.reason}</NumericText>
               </p>
@@ -137,17 +137,17 @@ export default function EmployeeProfile() {
         <div className="flex flex-wrap gap-2">
           {canViewPerformance(session, employee.id) ? (
             <Card tone="quiet" className="px-3 py-2">
-              <p className="text-[11px] text-haze">Performance</p>
-              <Num value={employee.performance} decimals={1} suffix=" / 5.0" className="text-[20px] text-sky" />
+              <p className="text-micro text-haze">Performance</p>
+              <Num value={employee.performance} decimals={1} suffix=" / 5.0" className="text-section text-sky" />
             </Card>
           ) : null}
           {canViewWorkload(session, employee.id) ? (
             <Card tone="quiet" className="px-3 py-2">
-              <p className="text-[11px] text-haze">Workload</p>
+              <p className="text-micro text-haze">Workload</p>
               <Num
                 value={employee.workload}
                 suffix="%"
-                className={employee.workload > 85 ? 'text-[20px] text-warn' : 'text-[20px] text-sky'}
+                className={employee.workload > 85 ? 'text-section text-warn' : 'text-section text-sky'}
               />
             </Card>
           ) : null}
@@ -177,14 +177,14 @@ export default function EmployeeProfile() {
                     aria-expanded={open}
                   >
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[13px]">
+                      <span className="text-small">
                         {skillName(skill.skillId)}
-                        <span className="ml-2 text-[11px] text-haze">{bandFor(skill.level).name}</span>
+                        <span className="ml-2 text-micro text-haze">{bandFor(skill.level).name}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
                         <Num value={skill.level} decimals={1} className="text-sky" />
                         {required !== undefined ? (
-                          <span className="num text-[11px] text-haze">/ {required.toFixed(1)}</span>
+                          <span className="num text-micro text-haze">/ {required.toFixed(1)}</span>
                         ) : null}
                         <ChevronDown
                           size={13}
@@ -206,14 +206,14 @@ export default function EmployeeProfile() {
                       >
                         <div className="pt-3 pb-1">
                           {skill.evidence.length === 0 ? (
-                            <p className="text-[11px] text-haze">
+                            <p className="text-micro text-haze">
                               ระดับนี้ยังไม่มีหลักฐานบันทึกไว้ — ระดับต่ำกว่า 3.0 ไม่บังคับให้มีหลักฐาน
                               แต่การไม่มีหลักฐานเองก็เป็นข้อมูลที่ควรรู้
                             </p>
                           ) : (
                             <ul className="space-y-1.5">
                               {skill.evidence.map((evidence, i) => (
-                                <li key={i} className="flex items-start gap-2 text-[11px]">
+                                <li key={i} className="flex items-start gap-2 text-micro">
                                   <Badge tone="muted">{evidence.kind}</Badge>
                                   <span className="text-haze">
                                     {evidence.detail}
@@ -256,7 +256,7 @@ export default function EmployeeProfile() {
                 value={(readiness?.score ?? 0) * 100}
                 suffix="%"
                 animate
-                className="text-[40px] leading-none text-sky"
+                className="text-display leading-none text-sky"
               />
               <div className="mt-3 h-1.5 w-full rounded-full bg-line/70">
                 <motion.div
@@ -267,11 +267,11 @@ export default function EmployeeProfile() {
                 />
               </div>
 
-              <p className="mt-4 text-[11px] text-haze">ยังขาด</p>
+              <p className="mt-4 text-micro text-haze">ยังขาด</p>
               {readiness && readiness.missingSkills.length > 0 ? (
                 <ul className="mt-1.5 space-y-1.5">
                   {readiness.missingSkills.map((item) => (
-                    <li key={item.skillId} className="flex items-baseline justify-between gap-3 text-[13px]">
+                    <li key={item.skillId} className="flex items-baseline justify-between gap-3 text-small">
                       <span>{item.skillName}</span>
                       <span className="num text-warn">
                         {item.current.toFixed(1)} → {item.required.toFixed(1)}
@@ -280,7 +280,7 @@ export default function EmployeeProfile() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1 text-[13px]">ผ่านเกณฑ์ skill ครบทุกข้อของตำแหน่งเป้าหมายแล้ว</p>
+                <p className="mt-1 text-small">ผ่านเกณฑ์ skill ครบทุกข้อของตำแหน่งเป้าหมายแล้ว</p>
               )}
             </div>
           </Card>
@@ -320,13 +320,13 @@ export default function EmployeeProfile() {
               totalLabel="Promotion Readiness"
             />
             <div className="mt-5 rounded-lg border border-line bg-panel-raised/60 p-3.5">
-              <p className="text-[11px] text-haze">ตำแหน่งเป้าหมายต้องการอะไรบ้าง</p>
-              <p className="mt-1 text-[13px] leading-relaxed">
+              <p className="text-micro text-haze">ตำแหน่งเป้าหมายต้องการอะไรบ้าง</p>
+              <p className="mt-1 text-small leading-relaxed">
                 <NumericText>{role.rationale}</NumericText>
               </p>
               <ul className="mt-3 space-y-1.5">
                 {gap?.gaps.map((item) => (
-                  <li key={item.skillId} className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <li key={item.skillId} className="flex items-baseline justify-between gap-3 text-small">
                     <span className={item.gap > 0 ? '' : 'text-haze'}>{item.skillName}</span>
                     <span className="num">
                       <span className={item.gap > 0 ? 'text-warn' : 'text-sky'}>
@@ -338,7 +338,7 @@ export default function EmployeeProfile() {
                 ))}
               </ul>
             </div>
-            <p className="mt-4 text-[11px] leading-relaxed text-haze">
+            <p className="mt-4 text-micro leading-relaxed text-haze">
               ตัวเลขนี้เป็นข้อมูลประกอบการตัดสินใจ ไม่ใช่การอนุมัติเลื่อนตำแหน่ง — การตัดสินใจยังเป็นของหัวหน้าและ HR
             </p>
           </>

@@ -50,14 +50,14 @@ export function SlidePanel({
             animate={reduced ? { opacity: 1 } : { x: 0 }}
             exit={reduced ? { opacity: 0 } : { x: '100%' }}
             transition={reduced ? { duration: 0.12 } : motionTokens.panel}
-            className="fixed top-0 right-0 z-50 flex h-full w-full max-w-[480px] flex-col border-l border-line bg-panel"
+            className="fixed top-0 right-0 z-50 flex h-full w-full max-w-120 flex-col border-l border-line bg-panel"
             role="dialog"
             aria-label={title}
           >
             <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
               <div>
-                <h2 className="text-[20px] font-semibold">{title}</h2>
-                {subtitle ? <p className="mt-0.5 text-[13px] text-haze">{subtitle}</p> : null}
+                <h2 className="text-section font-semibold">{title}</h2>
+                {subtitle ? <p className="mt-0.5 text-small text-haze">{subtitle}</p> : null}
               </div>
               <button
                 onClick={onClose}

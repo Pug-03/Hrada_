@@ -44,14 +44,14 @@ export default function Tracking() {
   const [selectedId, setSelectedId] = useState(employees[0]?.id ?? '')
   const employee = employees.find((e) => e.id === selectedId) ?? employees[0]
 
-  if (!employee) return <p className="text-[13px] text-haze">ไม่มีข้อมูลในขอบเขตของบทบาทนี้</p>
+  if (!employee) return <p className="text-small text-haze">ไม่มีข้อมูลในขอบเขตของบทบาทนี้</p>
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] leading-tight font-semibold">Tracking</h1>
-          <p className="mt-1 text-[13px] text-haze">
+          <h1 className="text-title leading-tight font-semibold">Tracking</h1>
+          <p className="mt-1 text-small text-haze">
             ติดตามการเติบโตของ skill ผลของการเรียน ผลงาน และเส้นทางอาชีพ
           </p>
         </div>
@@ -62,7 +62,7 @@ export default function Tracking() {
                 <button
                   key={option}
                   onClick={() => setMode(option)}
-                  className={`rounded-md px-3 py-1.5 text-[13px] transition-colors duration-150 ${
+                  className={`rounded-md px-3 py-1.5 text-small transition-colors duration-150 ${
                     mode === option ? 'bg-signal/20 text-text' : 'text-haze hover:text-text'
                   }`}
                 >
@@ -160,18 +160,18 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
             note={`เริ่มแล้ว ${engagement.started} จาก ${engagement.assigned} ขั้น — นับ "เริ่ม" ไม่ใช่ "จบ"`}
           />
           <div className="rounded-lg border border-line bg-panel-raised/50 px-3.5 py-3">
-            <p className="text-[11px] text-haze">Time to Competency</p>
+            <p className="text-micro text-haze">Time to Competency</p>
             {timeToCompetency.averageMonths === null ? (
               <>
-                <p className="mt-1 text-[20px] text-haze">ยังวัดไม่ได้</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-haze">
+                <p className="mt-1 text-section text-haze">ยังวัดไม่ได้</p>
+                <p className="mt-1 text-micro leading-relaxed text-haze">
                   ยังไม่มี skill ไหนที่ประวัติ 6 เดือนวิ่งข้ามเกณฑ์ของตำแหน่งเป้าหมาย จึงยังไม่มีระยะเวลาให้วัด
                 </p>
               </>
             ) : (
               <>
-                <Num value={timeToCompetency.averageMonths} decimals={1} suffix=" เดือน" className="mt-1 text-[20px] text-sky" />
-                <p className="mt-1 text-[11px] leading-relaxed text-haze">
+                <Num value={timeToCompetency.averageMonths} decimals={1} suffix=" เดือน" className="mt-1 text-section text-sky" />
+                <p className="mt-1 text-micro leading-relaxed text-haze">
                   {timeToCompetency.perSkill
                     .map((r) => `${r.skillName} ${r.months} เดือน`)
                     .join(' · ')}
@@ -181,9 +181,9 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
           </div>
           <Tooltip content={<NumericText>{satisfaction.basis}</NumericText>}>
             <div className="w-full rounded-lg border border-line bg-panel-raised/50 px-3.5 py-3 text-left">
-              <p className="text-[11px] text-haze">Manager Satisfaction</p>
-              <Num value={satisfaction.score * 100} suffix="%" className="mt-1 text-[20px] text-sky" />
-              <p className="mt-1 text-[11px] leading-relaxed text-haze">
+              <p className="text-micro text-haze">Manager Satisfaction</p>
+              <Num value={satisfaction.score * 100} suffix="%" className="mt-1 text-section text-sky" />
+              <p className="mt-1 text-micro leading-relaxed text-haze">
                 ใช้ผลงานและ Manager Review <span className="num">{satisfaction.reviewCount}</span> รายการ
                 เป็นตัวแทน — ยังไม่ใช่แบบสำรวจจริง
               </p>
@@ -192,8 +192,8 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
         </div>
 
         <div className="border-t border-line/70 px-5 py-4">
-          <p className="text-[11px] text-haze">Performance Improvement After Learning</p>
-          <ul className="mt-2 space-y-1.5 text-[13px]">
+          <p className="text-micro text-haze">Performance Improvement After Learning</p>
+          <ul className="mt-2 space-y-1.5 text-small">
             {outcomes.length === 0 ? (
               <li className="text-haze">ยังไม่มีประวัติการเรียน</li>
             ) : (
@@ -224,8 +224,8 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
           <div className="space-y-4 px-5 pb-4">
             {canViewPerformance(session, employee.id) ? (
               <div className="flex items-baseline justify-between">
-                <span className="text-[13px]">KPI / ผลงานรวม</span>
-                <Num value={employee.performance} decimals={1} suffix=" / 5.0" className="text-[20px] text-sky" />
+                <span className="text-small">KPI / ผลงานรวม</span>
+                <Num value={employee.performance} decimals={1} suffix=" / 5.0" className="text-section text-sky" />
               </div>
             ) : null}
 
@@ -250,7 +250,7 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
 
         <Card tone="flat">
           <CardHeader title="Career Development" hint="เป้าหมาย ความพร้อม และทางเลือกภายในองค์กร" />
-          <div className="space-y-3 px-5 pb-4 text-[13px]">
+          <div className="space-y-3 px-5 pb-4 text-small">
             <Row label="Career Goal" value={readiness.roleTitle} />
             <Row
               label="Promotion Readiness"
@@ -283,7 +283,7 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
               }
             />
             <div className="border-t border-line/70 pt-3">
-              <p className="text-[11px] text-haze">ยังขาดสำหรับตำแหน่งเป้าหมาย</p>
+              <p className="text-micro text-haze">ยังขาดสำหรับตำแหน่งเป้าหมาย</p>
               <ul className="mt-1.5 space-y-1">
                 {readiness.missingSkills.length === 0 ? (
                   <li className="text-haze">ผ่านครบทุกข้อแล้ว</li>
@@ -354,9 +354,9 @@ function TeamTracking({ employees }: { employees: Employee[] }) {
       <Card tone="flat">
         <CardHeader title="รายคน" hint="เรียงตาม Promotion Readiness" />
         <div className="overflow-x-auto px-5 pb-4">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
+          <table className="w-full min-w-180 text-left text-small">
             <thead>
-              <tr className="text-[11px] text-haze">
+              <tr className="text-micro text-haze">
                 <th className="pb-2 font-normal">ชื่อ</th>
                 <th className="pb-2 font-normal">Promotion Readiness</th>
                 <th className="pb-2 font-normal">เติบโต/เดือน</th>
@@ -371,7 +371,7 @@ function TeamTracking({ employees }: { employees: Employee[] }) {
                 <tr key={row.employee.id} className="border-t border-line/60">
                   <td className="py-2 pr-3">
                     {row.employee.name}
-                    <span className="block text-[11px] text-haze">{row.employee.title}</span>
+                    <span className="block text-micro text-haze">{row.employee.title}</span>
                   </td>
                   <td className="py-2 pr-3">
                     <span className="num text-sky">{(row.readiness.score * 100).toFixed(0)}%</span>
@@ -424,9 +424,9 @@ function Kpi({
 }) {
   return (
     <div className="rounded-lg border border-line bg-panel-raised/50 px-3.5 py-3">
-      <p className="text-[11px] text-haze">{label}</p>
-      <Num value={value} decimals={0} suffix={suffix} className="mt-1 text-[20px] text-sky" />
-      <p className="mt-1 text-[11px] leading-relaxed text-haze">
+      <p className="text-micro text-haze">{label}</p>
+      <Num value={value} decimals={0} suffix={suffix} className="mt-1 text-section text-sky" />
+      <p className="mt-1 text-micro leading-relaxed text-haze">
         <NumericText>{note}</NumericText>
       </p>
     </div>
@@ -445,11 +445,11 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 function EvidenceList({ label, items }: { label: string; items: string[] }) {
   return (
     <div>
-      <p className="text-[11px] text-haze">{label}</p>
+      <p className="text-micro text-haze">{label}</p>
       {items.length === 0 ? (
-        <p className="mt-1 text-[13px] text-haze">ยังไม่มีข้อมูลบันทึกไว้</p>
+        <p className="mt-1 text-small text-haze">ยังไม่มีข้อมูลบันทึกไว้</p>
       ) : (
-        <ul className="mt-1 space-y-1 text-[13px]">
+        <ul className="mt-1 space-y-1 text-small">
           {items.map((item) => (
             <li key={item} className="leading-relaxed">
               · {item}

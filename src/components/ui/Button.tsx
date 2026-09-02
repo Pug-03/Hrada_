@@ -25,7 +25,7 @@ export function Button({ variant = 'secondary', icon, className, children, ...re
     <button
       {...rest}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg border px-3.5 py-2 text-[13px] font-medium',
+        'inline-flex items-center justify-center gap-2 rounded-lg border px-3.5 py-2 text-small font-medium',
         'transition-[background-color,transform,opacity] duration-150 active:translate-y-px',
         'disabled:cursor-not-allowed disabled:opacity-40',
         variants[variant],

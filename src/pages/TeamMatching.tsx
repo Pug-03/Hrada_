@@ -54,8 +54,8 @@ export default function TeamMatching() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[28px] leading-tight font-semibold">AI Team Matching</h1>
-        <p className="mt-1 text-[13px] text-haze">
+        <h1 className="text-title leading-tight font-semibold">AI Team Matching</h1>
+        <p className="mt-1 text-small text-haze">
           จัดทีมด้วยวิธี greedy coverage — เลือกคนที่ปิด skill ที่ยังขาดได้มากที่สุดก่อน ไม่ใช่เรียงจากคะแนนสูงสุด
         </p>
       </div>
@@ -65,14 +65,14 @@ export default function TeamMatching() {
           <button
             key={option.id}
             onClick={() => setProjectId(option.id)}
-            className={`rounded-lg border px-3.5 py-2 text-left text-[13px] transition-[background-color,transform] duration-150 hover:-translate-y-0.5 ${
+            className={`rounded-lg border px-3.5 py-2 text-left text-small transition-[background-color,transform] duration-150 hover:-translate-y-0.5 ${
               option.id === projectId
                 ? 'border-signal/60 bg-signal/15'
                 : 'border-line bg-panel hover:bg-panel-raised'
             }`}
           >
             <span className="block">{option.name}</span>
-            <span className="block text-[11px] text-haze">
+            <span className="block text-micro text-haze">
               ต้องการ <span className="num">{option.teamSize}</span> คน ·{' '}
               <span className="num">{option.durationMonths}</span> เดือน
             </span>
@@ -84,8 +84,8 @@ export default function TeamMatching() {
         <Card tone="flat" className="lg:col-span-2">
           <CardHeader title={project.name} hint={project.description} />
           <div className="px-5 pb-4">
-            <p className="text-[11px] text-haze">Required skills</p>
-            <ul className="mt-1.5 space-y-1 text-[13px]">
+            <p className="text-micro text-haze">Required skills</p>
+            <ul className="mt-1.5 space-y-1 text-small">
               {project.requiredSkills.map((req) => {
                 const covered = requirementCovered(team.members, req.skillId, req.level)
                 return (
@@ -102,7 +102,7 @@ export default function TeamMatching() {
 
             <div className="mt-5 border-t border-line/70 pt-4">
               <div className="flex items-center justify-between">
-                <span className="text-[13px]">ขนาดทีม</span>
+                <span className="text-small">ขนาดทีม</span>
                 <span className="flex items-center gap-2">
                   <Button
                     variant="secondary"
@@ -113,7 +113,7 @@ export default function TeamMatching() {
                   >
                     <Minus size={13} />
                   </Button>
-                  <Num value={teamSize} className="w-6 text-center text-[20px] text-sky" />
+                  <Num value={teamSize} className="w-6 text-center text-section text-sky" />
                   <Button
                     variant="secondary"
                     aria-label="เพิ่มขนาดทีม"
@@ -125,7 +125,7 @@ export default function TeamMatching() {
                   </Button>
                 </span>
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-haze">
+              <p className="mt-2 text-micro leading-relaxed text-haze">
                 <NumericText>
                   เปลี่ยนขนาดทีมแล้วระบบคำนวณใหม่ทันที — ทีมตั้งแต่ 4 คนขึ้นไปต้องมี Developing Talent อย่างน้อย 1 คน
                   เพื่อให้โครงการสร้างคนไปด้วย
@@ -134,8 +134,8 @@ export default function TeamMatching() {
             </div>
 
             <div className="mt-5 border-t border-line/70 pt-4">
-              <p className="text-[11px] text-haze">ขั้นตอนที่ระบบใช้เลือก</p>
-              <ol className="mt-1.5 space-y-1.5 text-[11px] leading-relaxed text-haze">
+              <p className="text-micro text-haze">ขั้นตอนที่ระบบใช้เลือก</p>
+              <ol className="mt-1.5 space-y-1.5 text-micro leading-relaxed text-haze">
                 {team.steps.map((step, i) => (
                   <li key={i} className="flex gap-2">
                     <span className="num shrink-0 text-sky">{i + 1}</span>
@@ -159,7 +159,7 @@ export default function TeamMatching() {
             <>
               {team.developingTalentSwap ? (
                 <Card tone="quiet" className="border-sky/30 px-4 py-3">
-                  <p className="text-[11px] leading-relaxed text-sky">
+                  <p className="text-micro leading-relaxed text-sky">
                     <NumericText>{team.developingTalentSwap.reason}</NumericText>
                   </p>
                 </Card>
@@ -179,7 +179,7 @@ export default function TeamMatching() {
                       <Card tone="flat" className="p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[15px] font-semibold">
+                            <p className="text-body font-semibold">
                               {canViewEmployee(session, member.employee.id) ? (
                                 <Link to={`/employees/${member.employee.id}`} className="hover:text-sky">
                                   {member.employee.name}
@@ -188,7 +188,7 @@ export default function TeamMatching() {
                                 member.employee.name
                               )}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-haze">
+                            <p className="mt-0.5 text-micro text-haze">
                               {member.employee.title} · {member.employee.department}
                             </p>
                           </div>
@@ -204,13 +204,13 @@ export default function TeamMatching() {
                               </span>
                             </Badge>
                             <div className="text-right">
-                              <p className="text-[11px] text-haze">Fit</p>
-                              <Num value={member.fit.total} decimals={1} suffix="%" className="text-[20px] text-sky" />
+                              <p className="text-micro text-haze">Fit</p>
+                              <Num value={member.fit.total} decimals={1} suffix="%" className="text-section text-sky" />
                             </div>
                           </div>
                         </div>
 
-                        <p className="mt-3 text-[11px] leading-relaxed text-haze">
+                        <p className="mt-3 text-micro leading-relaxed text-haze">
                           <NumericText>{member.reason}</NumericText>
                         </p>
 
@@ -228,7 +228,7 @@ export default function TeamMatching() {
                         {member.workloadRisk ? (
                           <div className="mt-3 flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
                             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warn" />
-                            <p className="text-[11px] leading-relaxed text-warn">
+                            <p className="text-micro leading-relaxed text-warn">
                               Workload Risk — {member.employee.name} รับงานอยู่{' '}
                               <span className="num">{member.employee.workload}%</span> แล้ว
                               {member.backupName ? (
@@ -257,8 +257,8 @@ export default function TeamMatching() {
                   <div className="flex items-start gap-2">
                     <Users size={15} className="mt-0.5 shrink-0 text-warn" />
                     <div>
-                      <p className="text-[13px] text-warn">ทีมนี้ยังปิดไม่ครบ</p>
-                      <ul className="mt-1.5 space-y-1 text-[11px] text-haze">
+                      <p className="text-small text-warn">ทีมนี้ยังปิดไม่ครบ</p>
+                      <ul className="mt-1.5 space-y-1 text-micro text-haze">
                         {team.teamGaps.map((gap) => (
                           <li key={gap.skillId}>
                             {gap.skillName}: คนที่เก่งที่สุดในทีมอยู่ที่{' '}
@@ -267,7 +267,7 @@ export default function TeamMatching() {
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-2 text-[11px] leading-relaxed text-haze">
+                      <p className="mt-2 text-micro leading-relaxed text-haze">
                         เลือกได้สองทาง — พัฒนาคนในทีมผ่าน Learning Path หรือเปิดรับคนใหม่
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -283,7 +283,7 @@ export default function TeamMatching() {
                 </Card>
               ) : (
                 <Card tone="quiet" className="px-4 py-3">
-                  <p className="text-[11px] text-sky">
+                  <p className="text-micro text-sky">
                     ทีมนี้ครอบคลุม required skills ครบทุกข้อจากคนที่มีอยู่แล้ว ไม่ต้องเปิดรับเพิ่ม
                   </p>
                 </Card>
@@ -303,18 +303,18 @@ export default function TeamMatching() {
           <>
             <ScoreBreakdown components={explaining.fit.components} total={explaining.fit.total} totalLabel="Team Fit" />
             <div className="mt-5 rounded-lg border border-line bg-panel-raised/60 p-3.5">
-              <p className="text-[11px] text-haze">เหตุผลที่ถูกเลือกในลำดับนี้</p>
-              <p className="mt-1 text-[13px] leading-relaxed">
+              <p className="text-micro text-haze">เหตุผลที่ถูกเลือกในลำดับนี้</p>
+              <p className="mt-1 text-small leading-relaxed">
                 <NumericText>{explaining.reason}</NumericText>
               </p>
             </div>
             <div className="mt-4 rounded-lg border border-line bg-panel-raised/60 p-3.5">
-              <p className="text-[11px] text-haze">Talent Classification</p>
-              <p className="mt-1 text-[13px] leading-relaxed">
+              <p className="text-micro text-haze">Talent Classification</p>
+              <p className="mt-1 text-small leading-relaxed">
                 <NumericText>{explaining.talent.reason}</NumericText>
               </p>
             </div>
-            <p className="mt-5 text-[11px] leading-relaxed text-haze">
+            <p className="mt-5 text-micro leading-relaxed text-haze">
               รายชื่อนี้เป็นข้อเสนอ ไม่ใช่การมอบหมายงาน — หัวหน้าโครงการเป็นผู้ตัดสินใจว่าจะจัดทีมแบบใด
             </p>
           </>

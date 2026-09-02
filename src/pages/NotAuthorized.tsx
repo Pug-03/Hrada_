@@ -23,16 +23,16 @@ export default function NotAuthorized() {
         <span className="mx-auto grid size-11 place-items-center rounded-full bg-warn/10 text-warn">
           <ShieldAlert size={18} />
         </span>
-        <h1 className="mt-4 text-[28px] font-semibold">เข้าหน้านี้ไม่ได้</h1>
-        <p className="mt-2 text-[15px] leading-relaxed text-haze">
+        <h1 className="mt-4 text-title font-semibold">เข้าหน้านี้ไม่ได้</h1>
+        <p className="mt-2 text-body leading-relaxed text-haze">
           {reason ?? 'บทบาทปัจจุบันของคุณไม่มีสิทธิ์เข้าถึงหน้านี้'}
         </p>
         {attempted ? (
-          <p className="mt-2 text-[11px] text-haze">
+          <p className="mt-2 text-micro text-haze">
             หน้าที่พยายามเข้า: <span className="num">{attempted}</span>
           </p>
         ) : null}
-        <p className="mt-4 text-[13px] leading-relaxed text-haze">
+        <p className="mt-4 text-small leading-relaxed text-haze">
           สิทธิ์การเข้าถึงกำหนดตามบทบาท เพื่อให้ข้อมูลผลงานและค่าตอบแทนของแต่ละคนถูกเห็นเฉพาะคนที่ต้องใช้จริง
           หากต้องการดูหน้านี้ ให้สลับบทบาทจากมุมขวาบน
         </p>

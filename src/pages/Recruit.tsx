@@ -65,8 +65,8 @@ export default function Recruit() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[28px] leading-tight font-semibold">AI Recruit</h1>
-        <p className="mt-1 text-[13px] text-haze">
+        <h1 className="text-title leading-tight font-semibold">AI Recruit</h1>
+        <p className="mt-1 text-small text-haze">
           จัดอันดับผู้สมัครจาก Match Score พร้อมคำอธิบายทุกคะแนน — ระบบไม่ตัดใครออกเอง
         </p>
       </div>
@@ -76,14 +76,14 @@ export default function Recruit() {
           <button
             key={option.id}
             onClick={() => setJobId(option.id)}
-            className={`rounded-lg border px-3.5 py-2 text-left text-[13px] transition-[background-color,transform] duration-150 hover:-translate-y-0.5 ${
+            className={`rounded-lg border px-3.5 py-2 text-left text-small transition-[background-color,transform] duration-150 hover:-translate-y-0.5 ${
               option.id === jobId
                 ? 'border-signal/60 bg-signal/15'
                 : 'border-line bg-panel hover:bg-panel-raised'
             }`}
           >
             <span className="block">{option.title}</span>
-            <span className="block text-[11px] text-haze">{option.department}</span>
+            <span className="block text-micro text-haze">{option.department}</span>
           </button>
         ))}
       </div>
@@ -91,7 +91,7 @@ export default function Recruit() {
       <div className="grid gap-4 lg:grid-cols-5">
         <Card tone="flat" className="lg:col-span-2">
           <CardHeader title={job.title} hint={job.description} />
-          <div className="space-y-3 px-5 pb-4 text-[13px]">
+          <div className="space-y-3 px-5 pb-4 text-small">
             <Requirement label="Required" items={job.requiredSkills} />
             <Requirement label="Preferred" items={job.preferredSkills} />
             <div className="flex justify-between border-t border-line/70 pt-3 text-haze">
@@ -113,7 +113,7 @@ export default function Recruit() {
               </div>
             ) : null}
             <div className="border-t border-line/70 pt-3">
-              <p className="text-[11px] text-haze">ความรับผิดชอบ</p>
+              <p className="text-micro text-haze">ความรับผิดชอบ</p>
               <ul className="mt-1.5 space-y-1 text-haze">
                 {job.responsibilities.map((item) => (
                   <li key={item}>· {item}</li>
@@ -146,26 +146,26 @@ export default function Recruit() {
                       <Card tone="flat" className="p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[15px] font-semibold">
+                            <p className="text-body font-semibold">
                               <span className="num mr-2 text-haze">#{index + 1}</span>
                               {candidate.name}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-haze">
+                            <p className="mt-0.5 text-micro text-haze">
                               {candidate.education} · ประสบการณ์{' '}
                               <span className="num">{candidate.yearsExperience}</span> ปี · Assessment{' '}
                               <span className="num">{candidate.assessmentScore}</span>/100
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-[11px] text-haze">Match Score</p>
-                            <Num value={match.total} decimals={1} className="text-[28px] leading-none text-sky" />
+                            <p className="text-micro text-haze">Match Score</p>
+                            <Num value={match.total} decimals={1} className="text-title leading-none text-sky" />
                           </div>
                         </div>
 
                         {match.hasCriticalGap ? (
                           <div className="mt-3 flex items-start gap-2 rounded-lg border border-critical/40 bg-critical/10 px-3 py-2">
                             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-critical" />
-                            <p className="text-[11px] leading-relaxed text-critical">
+                            <p className="text-micro leading-relaxed text-critical">
                               คะแนนรวมสูง แต่ยังขาด skill สำคัญเกิน <span className="num">1.0</span> ระดับ:{' '}
                               {match.criticalGaps.map((g, i) => (
                                 <span key={g.skillId}>
@@ -236,7 +236,7 @@ export default function Recruit() {
               </AnimatePresence>
             </ul>
           )}
-          <p className="mt-3 text-[11px] leading-relaxed text-haze">
+          <p className="mt-3 text-micro leading-relaxed text-haze">
             ผู้สมัครที่คะแนนต่ำยังคงอยู่ในรายการพร้อมปุ่มตัดสินใจเสมอ — HRADA ไม่ตัดใครออกโดยอัตโนมัติ
           </p>
         </div>
@@ -258,8 +258,8 @@ export default function Recruit() {
 
             {explaining.match.hasCriticalGap ? (
               <div className="mt-5 rounded-lg border border-critical/40 bg-critical/10 p-3.5">
-                <p className="text-[13px] text-critical">Critical gap</p>
-                <ul className="mt-2 space-y-1 text-[11px] text-critical/90">
+                <p className="text-small text-critical">Critical gap</p>
+                <ul className="mt-2 space-y-1 text-micro text-critical/90">
                   {explaining.match.criticalGaps.map((g) => (
                     <li key={g.skillId}>
                       {g.skillName}: มี <span className="num">{g.current.toFixed(1)}</span> ตำแหน่งต้องการ{' '}
@@ -272,8 +272,8 @@ export default function Recruit() {
             ) : null}
 
             <div className="mt-5">
-              <p className="text-[11px] text-haze">จุดแข็งที่ตรงกับตำแหน่ง</p>
-              <ul className="mt-1.5 space-y-1 text-[13px]">
+              <p className="text-micro text-haze">จุดแข็งที่ตรงกับตำแหน่ง</p>
+              <ul className="mt-1.5 space-y-1 text-small">
                 {explaining.match.strengths.length === 0 ? (
                   <li className="text-haze">ยังไม่มี required skill ข้อไหนที่ถึงเกณฑ์</li>
                 ) : (
@@ -288,8 +288,8 @@ export default function Recruit() {
             </div>
 
             <div className="mt-5">
-              <p className="text-[11px] text-haze">Skill Gap</p>
-              <ul className="mt-1.5 space-y-1 text-[13px]">
+              <p className="text-micro text-haze">Skill Gap</p>
+              <ul className="mt-1.5 space-y-1 text-small">
                 {explaining.match.requiredGaps.length === 0 ? (
                   <li className="text-haze">ผ่านเกณฑ์ required skills ครบทุกข้อ</li>
                 ) : (
@@ -306,15 +306,15 @@ export default function Recruit() {
             </div>
 
             <div className="mt-5">
-              <p className="text-[11px] text-haze">ข้อมูลประกอบ</p>
-              <ul className="mt-1.5 space-y-1 text-[13px] text-haze">
+              <p className="text-micro text-haze">ข้อมูลประกอบ</p>
+              <ul className="mt-1.5 space-y-1 text-small text-haze">
                 <li>Certifications: {explaining.candidate.certifications.join(', ') || 'ไม่มี'}</li>
                 <li>โครงการ: {explaining.candidate.projects.map((p) => p.name).join(', ')}</li>
                 {explaining.candidate.portfolio ? <li>Portfolio: {explaining.candidate.portfolio}</li> : null}
               </ul>
             </div>
 
-            <p className="mt-5 text-[11px] leading-relaxed text-haze">
+            <p className="mt-5 text-micro leading-relaxed text-haze">
               คะแนนนี้เป็นข้อมูลประกอบการตัดสินใจของ HR เท่านั้น การตัดสินใจรับหรือไม่รับเป็นของคน
             </p>
           </>
@@ -334,7 +334,7 @@ function Requirement({
   if (items.length === 0) return null
   return (
     <div>
-      <p className="text-[11px] text-haze">{label}</p>
+      <p className="text-micro text-haze">{label}</p>
       <ul className="mt-1.5 space-y-1">
         {items.map((item) => (
           <li key={item.skillId} className="flex justify-between gap-3">

@@ -262,14 +262,14 @@ export function SkillConstellation({
 
       {hovered ? (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-[11px] shadow-lg shadow-black/50"
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-micro shadow-lg shadow-black/50"
           style={{
             left: `${(hovered.x / layout.width) * 100}%`,
             top: `${(hovered.y / layout.height) * 100}%`,
             marginTop: -10,
           }}
         >
-          <p className="text-[13px]">{hovered.employee.name}</p>
+          <p className="text-small">{hovered.employee.name}</p>
           <p className="text-haze">{hovered.employee.title}</p>
           {hovered.overloaded ? (
             <p className="mt-0.5 text-warn">
@@ -279,7 +279,7 @@ export function SkillConstellation({
         </div>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-[11px] text-haze">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-micro text-haze">
         {layout.departments.map((department) => (
           <span key={department} className="inline-flex items-center gap-1.5">
             <span

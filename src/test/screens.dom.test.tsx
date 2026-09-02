@@ -223,6 +223,23 @@ describe('Insights grouping (§11 Screen 8)', () => {
   })
 })
 
+describe('the type scale survives className merging', () => {
+  beforeEach(() => useSession.getState().signInAsHR())
+
+  it('keeps both the size and the tone on a rendered Badge', () => {
+    // Badge composes a scale class with a tone colour through cn(). Before
+    // tailwind-merge was taught the scale, the size was silently dropped.
+    const { container } = renderAt('/insights')
+    const badges = [...container.querySelectorAll('span')].filter((el) =>
+      el.className.includes('rounded-md'),
+    )
+    expect(badges.length).toBeGreaterThan(0)
+    for (const badge of badges) {
+      expect(badge.className, badge.textContent ?? '').toContain('text-micro')
+    }
+  })
+})
+
 describe('Entry backdrop (§3.3 — texture, not a second hero)', () => {
   beforeEach(() => useSession.getState().signOut())
 

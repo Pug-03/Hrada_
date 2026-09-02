@@ -80,8 +80,8 @@ export default function Dashboard() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] leading-tight font-semibold">Workforce Dashboard</h1>
-          <p className="mt-1 text-[13px] text-haze">
+          <h1 className="text-title leading-tight font-semibold">Workforce Dashboard</h1>
+          <p className="mt-1 text-small text-haze">
             {scope === 'team'
               ? `ขอบเขตข้อมูล: ทีม ${session.managerDepartment} เท่านั้น ตามสิทธิ์ของบทบาท Manager`
               : 'ขอบเขตข้อมูล: ทั้งองค์กร'}
@@ -100,7 +100,7 @@ export default function Dashboard() {
           >
             <Tooltip content={<NumericText>{kpi.explain}</NumericText>} className="w-full">
               <Card className="w-full px-4 py-3.5 text-left" tone="flat">
-                <p className="text-[11px] text-haze">{kpi.label}</p>
+                <p className="text-micro text-haze">{kpi.label}</p>
                 <p
                   className={
                     kpi.tone === 'critical'
@@ -115,7 +115,7 @@ export default function Dashboard() {
                     decimals={kpi.decimals}
                     suffix={kpi.suffix}
                     animate
-                    className="text-[40px] leading-none font-medium"
+                    className="text-display leading-none font-medium"
                   />
                 </p>
               </Card>
@@ -155,7 +155,7 @@ export default function Dashboard() {
             title="AI Insights"
             hint="สร้างจากข้อมูลจริงในระบบ กดดูที่มาได้ทุกข้อ"
             right={
-              <Link to="/insights" className="text-[13px] text-sky hover:underline">
+              <Link to="/insights" className="text-small text-sky hover:underline">
                 ดูทั้งหมด
               </Link>
             }
@@ -167,7 +167,7 @@ export default function Dashboard() {
                 className="rounded-lg border border-line bg-panel-raised/60 px-3.5 py-2.5"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-[13px] leading-relaxed">
+                  <p className="text-small leading-relaxed">
                     <NumericText>{insight.title}</NumericText>
                   </p>
                   <Badge
@@ -182,13 +182,13 @@ export default function Dashboard() {
                     {insight.kind}
                   </Badge>
                 </div>
-                <p className="mt-1 text-[11px] leading-relaxed text-haze">
+                <p className="mt-1 text-micro leading-relaxed text-haze">
                   <NumericText>{insight.computedFrom}</NumericText>
                 </p>
               </li>
             ))}
             {insights.length === 0 ? (
-              <li className="py-6 text-center text-[13px] text-haze">
+              <li className="py-6 text-center text-small text-haze">
                 ยังไม่มีข้อสังเกตในขอบเขตข้อมูลนี้
               </li>
             ) : null}

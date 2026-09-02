@@ -34,7 +34,7 @@ export function Tooltip({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.14 }}
             role="tooltip"
-            className="absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-[260px] -translate-x-1/2 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-left text-[11px] leading-relaxed text-text shadow-lg shadow-black/50"
+            className="absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-65 -translate-x-1/2 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-left text-micro leading-relaxed text-text shadow-lg shadow-black/50"
           >
             {content}
           </motion.span>

@@ -49,7 +49,7 @@ export default function Learning() {
   const outcomes = useMemo(() => (employee ? learningOutcomes(employee) : []), [employee])
 
   if (!employee || !path || !gap) {
-    return <p className="text-[13px] text-haze">ไม่มีข้อมูลพนักงานในขอบเขตของบทบาทนี้</p>
+    return <p className="text-small text-haze">ไม่มีข้อมูลพนักงานในขอบเขตของบทบาทนี้</p>
   }
 
   const completed = completedByEmployee[employee.id] ?? []
@@ -62,8 +62,8 @@ export default function Learning() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] leading-tight font-semibold">Personalized Learning</h1>
-          <p className="mt-1 text-[13px] text-haze">
+          <h1 className="text-title leading-tight font-semibold">Personalized Learning</h1>
+          <p className="mt-1 text-small text-haze">
             เส้นทางพัฒนาสร้างจาก Skill Gap จริงของแต่ละคน ไม่ใช่คอร์สแนะนำทั่วไป
           </p>
         </div>
@@ -72,9 +72,9 @@ export default function Learning() {
 
       <div className="grid gap-3 md:grid-cols-4">
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-[11px] text-haze">Current Skills</p>
-          <Num value={employee.skills.length} className="text-[28px] text-sky" />
-          <p className="mt-1 text-[11px] text-haze">
+          <p className="text-micro text-haze">Current Skills</p>
+          <Num value={employee.skills.length} className="text-title text-sky" />
+          <p className="mt-1 text-micro text-haze">
             สูงสุด{' '}
             <span className="num">
               {peakSkillLevel(employee).toFixed(1)}
@@ -82,27 +82,27 @@ export default function Learning() {
           </p>
         </Card>
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-[11px] text-haze">Primary Skill Gap</p>
-          <p className="mt-0.5 text-[15px]">{path.targetSkillName ?? 'ไม่มี'}</p>
+          <p className="text-micro text-haze">Primary Skill Gap</p>
+          <p className="mt-0.5 text-body">{path.targetSkillName ?? 'ไม่มี'}</p>
           {path.targetSkill ? (
-            <p className="mt-1 text-[11px] text-warn">
+            <p className="mt-1 text-micro text-warn">
               <span className="num">{path.fromLevel.toFixed(1)}</span> →{' '}
               <span className="num">{path.toLevel.toFixed(1)}</span>
             </p>
           ) : null}
         </Card>
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-[11px] text-haze">Target Role</p>
-          <p className="mt-0.5 text-[15px]">{role.title}</p>
-          <p className="mt-1 text-[11px] text-haze">
+          <p className="text-micro text-haze">Target Role</p>
+          <p className="mt-0.5 text-body">{role.title}</p>
+          <p className="mt-1 text-micro text-haze">
             ผ่านแล้ว <span className="num">{gap.metCount}</span>/
             <span className="num">{gap.requiredCount}</span> skill
           </p>
         </Card>
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-[11px] text-haze">Skill Completion Rate</p>
-          <Num value={completion.rate * 100} suffix="%" className="text-[28px] text-sky" />
-          <p className="mt-1 text-[11px] text-haze">
+          <p className="text-micro text-haze">Skill Completion Rate</p>
+          <Num value={completion.rate * 100} suffix="%" className="text-title text-sky" />
+          <p className="mt-1 text-micro text-haze">
             ทำแล้ว <span className="num">{completion.completed}</span>/
             <span className="num">{completion.assigned}</span> ขั้น · เริ่มแล้ว{' '}
             <span className="num">{engagement.started}</span>
@@ -116,7 +116,7 @@ export default function Learning() {
             title="Learning Path"
             hint={path.method}
             right={
-              <span className="text-[11px] text-haze">
+              <span className="text-micro text-haze">
                 <span className="num">{completion.completed}</span>/
                 <span className="num">{completion.assigned}</span>
               </span>
@@ -132,7 +132,7 @@ export default function Learning() {
             </div>
 
             {path.steps.length === 0 ? (
-              <p className="mt-4 text-[13px] text-haze">
+              <p className="mt-4 text-small text-haze">
                 {employee.name} ผ่านเกณฑ์ skill ครบทุกข้อของ {role.title} แล้ว —
                 ขั้นถัดไปคือคุยกับหัวหน้าเรื่องขอบเขตงานใหม่ ไม่ใช่คอร์สเพิ่ม
               </p>
@@ -172,22 +172,22 @@ export default function Learning() {
 
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
-                              <p className="text-[13px]">
+                              <p className="text-small">
                                 <span className="num mr-2 text-haze">{index + 1}</span>
                                 {step.title}
                               </p>
                               <span className="flex items-center gap-2">
                                 <Badge tone={step.synthesized ? 'sky' : 'muted'}>{step.type}</Badge>
-                                <span className="num text-[11px] text-haze">{step.durationHours} ชม.</span>
+                                <span className="num text-micro text-haze">{step.durationHours} ชม.</span>
                               </span>
                             </div>
-                            <p className="mt-1 text-[11px] leading-relaxed text-haze">
+                            <p className="mt-1 text-micro leading-relaxed text-haze">
                               <NumericText>{step.rationale}</NumericText>
                             </p>
                             {!isDone ? (
                               <button
                                 onClick={() => toggleStarted(employee.id, step.id)}
-                                className="mt-2 text-[11px] text-haze underline-offset-2 hover:text-sky hover:underline"
+                                className="mt-2 text-micro text-haze underline-offset-2 hover:text-sky hover:underline"
                               >
                                 {isStarted ? 'ยกเลิกว่าเริ่มแล้ว' : 'ทำเครื่องหมายว่าเริ่มแล้ว'}
                               </button>
@@ -209,7 +209,7 @@ export default function Learning() {
             <ul className="space-y-3 px-5 pb-4">
               {gap.gaps.map((item) => (
                 <li key={item.skillId}>
-                  <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <div className="flex items-baseline justify-between gap-3 text-small">
                     <span className={item.gap > 0 ? '' : 'text-haze'}>{item.skillName}</span>
                     <span className="num">
                       <span className={item.gap > 0 ? 'text-warn' : 'text-sky'}>{item.current.toFixed(1)}</span>
@@ -226,7 +226,7 @@ export default function Learning() {
             <CardHeader title="Learning Outcome" hint="สิ่งที่เรียนไปแล้ว ขยับระดับจริงเท่าไร" />
             <div className="space-y-3 px-5 pb-4">
               {outcomes.length === 0 ? (
-                <p className="text-[13px] text-haze">ยังไม่มีประวัติการเรียนที่บันทึกไว้</p>
+                <p className="text-small text-haze">ยังไม่มีประวัติการเรียนที่บันทึกไว้</p>
               ) : (
                 outcomes.map(({ record, outcome }) => (
                   <div
@@ -236,15 +236,15 @@ export default function Learning() {
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-[13px]">{record.title}</p>
+                      <p className="text-small">{record.title}</p>
                       <Badge tone="muted">{record.type}</Badge>
                     </div>
-                    <p className="mt-1 text-[11px] text-haze">
+                    <p className="mt-1 text-micro text-haze">
                       {skillName(record.targetSkill)} · จบเมื่อ <span className="num">{record.completedOn}</span>
                     </p>
 
                     <div className="mt-2.5 flex items-center gap-2">
-                      <span className="num text-[11px] text-haze">{outcome.before.toFixed(2)}</span>
+                      <span className="num text-micro text-haze">{outcome.before.toFixed(2)}</span>
                       <div className="relative h-1.5 flex-1 rounded-full bg-line/70">
                         <motion.div
                           className={`absolute inset-y-0 left-0 rounded-full ${
@@ -256,19 +256,19 @@ export default function Learning() {
                         />
                       </div>
                       <span
-                        className={`num text-[11px] ${outcome.lowOutcomeFlag ? 'text-warn' : 'text-sky'}`}
+                        className={`num text-micro ${outcome.lowOutcomeFlag ? 'text-warn' : 'text-sky'}`}
                       >
                         {outcome.after.toFixed(2)}
                       </span>
                     </div>
 
                     {outcome.lowOutcomeFlag ? (
-                      <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-warn">
+                      <p className="mt-2 flex items-start gap-1.5 text-micro leading-relaxed text-warn">
                         <TriangleAlert size={12} className="mt-0.5 shrink-0" />
                         <NumericText>{outcome.message}</NumericText>
                       </p>
                     ) : (
-                      <p className="mt-2 text-[11px] text-haze">
+                      <p className="mt-2 text-micro text-haze">
                         <NumericText>{outcome.message}</NumericText>
                       </p>
                     )}

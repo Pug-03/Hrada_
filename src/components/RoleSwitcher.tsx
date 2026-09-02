@@ -38,7 +38,7 @@ export function RoleSwitcher() {
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-1.5 text-[13px] transition-colors duration-150 hover:bg-panel-raised"
+        className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-1.5 text-small transition-colors duration-150 hover:bg-panel-raised"
         aria-expanded={open}
       >
         <span className="text-haze">บทบาท</span>
@@ -55,7 +55,7 @@ export function RoleSwitcher() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute right-0 z-40 mt-2 w-[300px] rounded-xl border border-line bg-panel p-2 shadow-xl shadow-black/50"
+              className="absolute right-0 z-40 mt-2 w-75 rounded-xl border border-line bg-panel p-2 shadow-xl shadow-black/50"
             >
               <Group label="ทั้งองค์กร">
                 <Item onClick={() => go(useSession.getState().signInAsHR)}>HR / HR Manager</Item>
@@ -95,7 +95,7 @@ export function RoleSwitcher() {
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="border-b border-line/70 py-1.5 last:border-0">
-      <p className="px-2 py-1 text-[11px] text-haze">{label}</p>
+      <p className="px-2 py-1 text-micro text-haze">{label}</p>
       {children}
     </div>
   )
@@ -105,7 +105,7 @@ function Item({ children, onClick }: { children: React.ReactNode; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className="block w-full truncate rounded-md px-2 py-1.5 text-left text-[13px] transition-colors duration-150 hover:bg-panel-raised"
+      className="block w-full truncate rounded-md px-2 py-1.5 text-left text-small transition-colors duration-150 hover:bg-panel-raised"
     >
       {children}
     </button>
