@@ -98,9 +98,13 @@ describe('constellation hover', () => {
     // gives the layoutId hand-off something to travel from.
     expect(screen.getByRole('heading', { name: 'Workforce Dashboard' })).toBeTruthy()
 
+    // A generous timeout: this waits out a real 260ms setTimeout plus a
+    // route change, and a shared CI runner can be far slower than a dev
+    // machine — 2000ms was tight enough to flake there even though the
+    // underlying wait is well under a second in practice.
     await waitFor(
       () => expect(screen.getByRole('heading', { name: 'ปิยะ ส.' })).toBeTruthy(),
-      { timeout: 2000 },
+      { timeout: 8000 },
     )
   })
 
@@ -116,7 +120,7 @@ describe('constellation hover', () => {
     expect(screen.getByRole('heading', { name: 'Workforce Dashboard' })).toBeTruthy()
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'ปิยะ ส.' })).toBeTruthy(), {
-      timeout: 2000,
+      timeout: 8000,
     })
   })
 
