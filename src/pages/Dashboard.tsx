@@ -9,6 +9,8 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { NumericText } from '@/components/ui/NumericText'
 import { Num } from '@/components/ui/Num'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { useI18n } from '@/lib/i18n'
+import { renderInsight } from '@/lib/i18n/insights'
 import { insightScope, visibleEmployees, type Session } from '@/lib/permissions'
 import {
   calcWorkforceHealth,
@@ -26,6 +28,7 @@ import { useSession } from '@/store/session'
 export default function Dashboard() {
   const session = useSession() as unknown as Session
   const reduced = useReducedMotion()
+  const { t, locale } = useI18n()
   const employees = useMemo(() => visibleEmployees(session), [session])
   const scope = insightScope(session)
 
@@ -35,44 +38,50 @@ export default function Dashboard() {
 
   const kpis = [
     {
-      label: 'Employees',
+      label: t('dashboard.kpi.employees'),
       value: health.headcount,
       decimals: 0,
-      explain: scope === 'team' ? 'จำนวนคนในทีมที่คุณดูแล' : 'จำนวนพนักงานที่อยู่ในระบบตัวอย่างนี้',
+      explain:
+        scope === 'team'
+          ? t('dashboard.kpi.employees.explainTeam')
+          : t('dashboard.kpi.employees.explainOrg'),
     },
     {
-      label: 'Skill Coverage',
+      label: t('dashboard.kpi.coverage'),
       value: health.skillCoverage * 100,
       suffix: '%',
       decimals: 0,
-      explain: `สัดส่วน skill ที่งานเปิดรับและโครงการต้องการ แล้วมีคนถึงเกณฑ์อย่างน้อย 2 คน (${health.coveredSkills.length} จาก ${health.demand.length} skill)`,
+      explain: t('dashboard.kpi.coverage.explain', {
+        covered: health.coveredSkills.length,
+        total: health.demand.length,
+      }),
     },
     {
-      label: 'Critical Skill Gaps',
+      label: t('dashboard.kpi.critical'),
       value: health.criticalSkillGaps.length,
       decimals: 0,
       tone: health.criticalSkillGaps.length > 0 ? 'critical' : undefined,
-      explain: 'skill ที่มีงานรออยู่จริง แต่ไม่มีใครในองค์กรทำได้ถึงระดับที่งานนั้นต้องการ',
+      explain: t('dashboard.kpi.critical.explain'),
     },
     {
-      label: 'High Potential',
+      label: t('dashboard.kpi.highPotential'),
       value: health.highPotential.length,
       decimals: 0,
-      explain: 'คนที่ Promotion Readiness ตั้งแต่ 75% ขึ้นไป',
+      explain: t('dashboard.kpi.highPotential.explain'),
     },
     {
-      label: 'At-Risk Skills',
+      label: t('dashboard.kpi.atRisk'),
       value: health.atRiskSkills.length,
       decimals: 0,
       tone: health.atRiskSkills.length > 0 ? 'warn' : undefined,
-      explain: `skill ที่มีคนเดียวในองค์กรทำได้ถึงระดับ ${OWNERSHIP_BAR.toFixed(1)} — ถ้าคนนั้นไม่อยู่ งานจะสะดุดทันที`,
+      explain: t('dashboard.kpi.atRisk.explain', { bar: OWNERSHIP_BAR.toFixed(1) }),
     },
     {
-      label: 'Internal Mobility',
+      label: t('dashboard.kpi.mobility'),
       value: health.internalMobilityRate * 100,
       suffix: '%',
       decimals: 0,
-      explain: 'สัดส่วนคนที่ผ่านเกณฑ์อย่างน้อย 70% ของอีกตำแหน่งหนึ่งในองค์กรอยู่แล้ว',
+      explain: t('dashboard.kpi.mobility.explain'),
     },
   ]
 
@@ -80,14 +89,14 @@ export default function Dashboard() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-title leading-tight font-semibold">Workforce Dashboard</h1>
+          <h1 className="text-title leading-tight font-semibold">{t('nav.dashboard')}</h1>
           <p className="mt-1 text-small text-haze">
             {scope === 'team'
-              ? `ขอบเขตข้อมูล: ทีม ${session.managerDepartment} เท่านั้น ตามสิทธิ์ของบทบาท Manager`
-              : 'ขอบเขตข้อมูล: ทั้งองค์กร'}
+              ? t('common.scopeTeam', { department: session.managerDepartment ?? '' })
+              : t('common.scopeOrg')}
           </p>
         </div>
-        <Badge tone="sky">ทุกตัวเลขคำนวณสดจาก scoring.ts</Badge>
+        <Badge tone="sky">{t('dashboard.liveBadge')}</Badge>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -127,10 +136,10 @@ export default function Dashboard() {
       <Card tone="flat" className="overflow-hidden">
         <CardHeader
           title="Skill Constellation"
-          hint="คนหนึ่งคน = จุดหนึ่งจุด · มี skill ร่วมกันตั้งแต่ 3.0 จึงมีเส้นเชื่อม · กดที่จุดเพื่อเปิดโปรไฟล์"
+          hint={t('dashboard.constellation.hint')}
           right={
             <Badge tone="muted">
-              <span className="num">{employees.length}</span> คน
+              <span className="num">{employees.length}</span> {t('common.peopleUnit')}
             </Badge>
           }
         />
@@ -141,10 +150,7 @@ export default function Dashboard() {
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card tone="flat" className="lg:col-span-2">
-          <CardHeader
-            title="Skill Coverage by department"
-            hint="สัดส่วน skill ที่งานต้องการ แล้วแผนกนั้นมีคนทำได้"
-          />
+          <CardHeader title={t('dashboard.coverage.title')} hint={t('dashboard.coverage.hint')} />
           <div className="px-3 pb-4">
             <CoverageBarChart data={coverage} />
           </div>
@@ -152,44 +158,47 @@ export default function Dashboard() {
 
         <Card tone="flat" className="lg:col-span-3">
           <CardHeader
-            title="AI Insights"
-            hint="สร้างจากข้อมูลจริงในระบบ กดดูที่มาได้ทุกข้อ"
+            title={t('dashboard.insights.title')}
+            hint={t('dashboard.insights.hint')}
             right={
               <Link to="/insights" className="text-small text-sky hover:underline">
-                ดูทั้งหมด
+                {t('common.viewAll')}
               </Link>
             }
           />
           <ul className="space-y-2 px-5 pb-4">
-            {insights.slice(0, 5).map((insight) => (
-              <li
-                key={insight.id}
-                className="rounded-lg border border-line bg-panel-raised/60 px-3.5 py-2.5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-small leading-relaxed">
-                    <NumericText>{insight.title}</NumericText>
+            {insights.slice(0, 5).map((insight) => {
+              const rendered = renderInsight(insight, t, locale)
+              return (
+                <li
+                  key={insight.id}
+                  className="rounded-lg border border-line bg-panel-raised/60 px-3.5 py-2.5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-small leading-relaxed">
+                      <NumericText>{rendered.title}</NumericText>
+                    </p>
+                    <Badge
+                      tone={
+                        insight.severity === 'critical'
+                          ? 'critical'
+                          : insight.severity === 'warn'
+                            ? 'warn'
+                            : 'sky'
+                      }
+                    >
+                      {t(`kind.${insight.kind}`)}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-micro leading-relaxed text-haze">
+                    <NumericText>{rendered.computedFrom}</NumericText>
                   </p>
-                  <Badge
-                    tone={
-                      insight.severity === 'critical'
-                        ? 'critical'
-                        : insight.severity === 'warn'
-                          ? 'warn'
-                          : 'sky'
-                    }
-                  >
-                    {insight.kind}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-micro leading-relaxed text-haze">
-                  <NumericText>{insight.computedFrom}</NumericText>
-                </p>
-              </li>
-            ))}
+                </li>
+              )
+            })}
             {insights.length === 0 ? (
               <li className="py-6 text-center text-small text-haze">
-                ยังไม่มีข้อสังเกตในขอบเขตข้อมูลนี้
+                {t('dashboard.insights.empty')}
               </li>
             ) : null}
           </ul>

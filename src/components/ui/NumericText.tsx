@@ -4,7 +4,7 @@ import { Fragment } from 'react'
  * §14.8 — every number in the system is mono with tabular figures, including
  * the ones embedded in sentences the scoring engine writes.
  *
- * The engine returns explanation text as prose ("Workload 92% เกิน 85%"), so
+ * The engine returns explanation text as prose ("Workload 92% is above 85%"), so
  * the digits inside it are split out here and given the mono treatment rather
  * than restructuring every explanation into fragments. The surrounding Thai
  * stays in the body face, which is what makes the numbers read as numbers.

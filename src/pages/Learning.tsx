@@ -9,6 +9,7 @@ import { LevelBar } from '@/components/ui/LevelBar'
 import { NumericText } from '@/components/ui/NumericText'
 import { Num } from '@/components/ui/Num'
 import { skillName } from '@/data/skills'
+import { useI18n, useMessage, useName } from '@/lib/i18n'
 import { visibleEmployees, type Session } from '@/lib/permissions'
 import {
   calcEngagementInDevelopmentPlan,
@@ -18,6 +19,7 @@ import {
   learningOutcomes,
   peakSkillLevel,
   targetRoleOf,
+  type Msg,
 } from '@/lib/scoring'
 import { useLearning } from '@/store/learning'
 import { useSession } from '@/store/session'
@@ -31,6 +33,10 @@ import { useSession } from '@/store/session'
 export default function Learning() {
   const session = useSession() as unknown as Session
   const reduced = useReducedMotion()
+  const { t } = useI18n()
+  const name = useName()
+  const renderMsg = useMessage()
+  const renderTitle = (title: string | Msg) => (typeof title === 'string' ? title : renderMsg(title))
   const employees = useMemo(() => visibleEmployees(session), [session])
   const [selectedId, setSelectedId] = useState(employees[0]?.id ?? '')
 
@@ -49,7 +55,7 @@ export default function Learning() {
   const outcomes = useMemo(() => (employee ? learningOutcomes(employee) : []), [employee])
 
   if (!employee || !path || !gap) {
-    return <p className="text-small text-haze">ไม่มีข้อมูลพนักงานในขอบเขตของบทบาทนี้</p>
+    return <p className="text-small text-haze">{t('learning.noEmployees')}</p>
   }
 
   const completed = completedByEmployee[employee.id] ?? []
@@ -62,28 +68,23 @@ export default function Learning() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-title leading-tight font-semibold">Personalized Learning</h1>
-          <p className="mt-1 text-small text-haze">
-            เส้นทางพัฒนาสร้างจาก Skill Gap จริงของแต่ละคน ไม่ใช่คอร์สแนะนำทั่วไป
-          </p>
+          <h1 className="text-title leading-tight font-semibold">{t('nav.learning')}</h1>
+          <p className="mt-1 text-small text-haze">{t('learning.hint')}</p>
         </div>
         <EmployeePicker employees={employees} value={employee.id} onChange={setSelectedId} />
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-micro text-haze">Current Skills</p>
+          <p className="text-micro text-haze">{t('learning.currentSkills')}</p>
           <Num value={employee.skills.length} className="text-title text-sky" />
           <p className="mt-1 text-micro text-haze">
-            สูงสุด{' '}
-            <span className="num">
-              {peakSkillLevel(employee).toFixed(1)}
-            </span>
+            <NumericText>{t('learning.highest', { level: peakSkillLevel(employee).toFixed(1) })}</NumericText>
           </p>
         </Card>
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-micro text-haze">Primary Skill Gap</p>
-          <p className="mt-0.5 text-body">{path.targetSkillName ?? 'ไม่มี'}</p>
+          <p className="text-micro text-haze">{t('learning.primaryGap')}</p>
+          <p className="mt-0.5 text-body">{path.targetSkillName ?? t('common.none')}</p>
           {path.targetSkill ? (
             <p className="mt-1 text-micro text-warn">
               <span className="num">{path.fromLevel.toFixed(1)}</span> →{' '}
@@ -92,20 +93,25 @@ export default function Learning() {
           ) : null}
         </Card>
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-micro text-haze">Target Role</p>
+          <p className="text-micro text-haze">{t('learning.targetRole')}</p>
           <p className="mt-0.5 text-body">{role.title}</p>
           <p className="mt-1 text-micro text-haze">
-            ผ่านแล้ว <span className="num">{gap.metCount}</span>/
-            <span className="num">{gap.requiredCount}</span> skill
+            <NumericText>
+              {t('learning.rolePassed', { met: gap.metCount, total: gap.requiredCount })}
+            </NumericText>
           </p>
         </Card>
         <Card tone="flat" className="px-4 py-3.5">
-          <p className="text-micro text-haze">Skill Completion Rate</p>
+          <p className="text-micro text-haze">{t('learning.completionRate')}</p>
           <Num value={completion.rate * 100} suffix="%" className="text-title text-sky" />
           <p className="mt-1 text-micro text-haze">
-            ทำแล้ว <span className="num">{completion.completed}</span>/
-            <span className="num">{completion.assigned}</span> ขั้น · เริ่มแล้ว{' '}
-            <span className="num">{engagement.started}</span>
+            <NumericText>
+              {t('learning.completionNote', {
+                completed: completion.completed,
+                assigned: completion.assigned,
+                started: engagement.started,
+              })}
+            </NumericText>
           </p>
         </Card>
       </div>
@@ -113,8 +119,8 @@ export default function Learning() {
       <div className="grid gap-4 lg:grid-cols-5">
         <Card tone="flat" className="lg:col-span-3">
           <CardHeader
-            title="Learning Path"
-            hint={path.method}
+            title={t('learning.pathTitle')}
+            hint={renderMsg(path.method)}
             right={
               <span className="text-micro text-haze">
                 <span className="num">{completion.completed}</span>/
@@ -133,14 +139,16 @@ export default function Learning() {
 
             {path.steps.length === 0 ? (
               <p className="mt-4 text-small text-haze">
-                {employee.name} ผ่านเกณฑ์ skill ครบทุกข้อของ {role.title} แล้ว —
-                ขั้นถัดไปคือคุยกับหัวหน้าเรื่องขอบเขตงานใหม่ ไม่ใช่คอร์สเพิ่ม
+                <NumericText>
+                  {t('learning.pathComplete', { name: name(employee), role: role.title })}
+                </NumericText>
               </p>
             ) : (
               <ol className="mt-4 space-y-2">
                 {path.steps.map((step, index) => {
                   const isDone = completed.includes(step.id)
                   const isStarted = started.includes(step.id)
+                  const title = renderTitle(step.title)
                   return (
                     <li key={step.id}>
                       <div
@@ -152,7 +160,7 @@ export default function Learning() {
                           <button
                             onClick={() => toggleCompleted(employee.id, step.id)}
                             aria-pressed={isDone}
-                            aria-label={`ทำเครื่องหมายว่าเรียน ${step.title} เสร็จแล้ว`}
+                            aria-label={t('learning.markDone', { title })}
                             className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border transition-colors duration-150 ${
                               isDone ? 'border-sky bg-sky text-ink' : 'border-line hover:border-haze'
                             }`}
@@ -174,22 +182,24 @@ export default function Learning() {
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                               <p className="text-small">
                                 <span className="num mr-2 text-haze">{index + 1}</span>
-                                {step.title}
+                                {title}
                               </p>
                               <span className="flex items-center gap-2">
                                 <Badge tone={step.synthesized ? 'sky' : 'muted'}>{step.type}</Badge>
-                                <span className="num text-micro text-haze">{step.durationHours} ชม.</span>
+                                <span className="num text-micro text-haze">
+                                  {t('common.hours', { count: step.durationHours })}
+                                </span>
                               </span>
                             </div>
                             <p className="mt-1 text-micro leading-relaxed text-haze">
-                              <NumericText>{step.rationale}</NumericText>
+                              <NumericText>{renderMsg(step.rationale)}</NumericText>
                             </p>
                             {!isDone ? (
                               <button
                                 onClick={() => toggleStarted(employee.id, step.id)}
                                 className="mt-2 text-micro text-haze underline-offset-2 hover:text-sky hover:underline"
                               >
-                                {isStarted ? 'ยกเลิกว่าเริ่มแล้ว' : 'ทำเครื่องหมายว่าเริ่มแล้ว'}
+                                {isStarted ? t('learning.unmarkStarted') : t('learning.markStarted')}
                               </button>
                             ) : null}
                           </div>
@@ -205,7 +215,7 @@ export default function Learning() {
 
         <div className="space-y-4 lg:col-span-2">
           <Card tone="flat">
-            <CardHeader title="Skill Gap ทั้งหมด" hint={`เทียบกับ ${role.title}`} />
+            <CardHeader title={t('learning.gapTitle')} hint={t('learning.gapHint', { role: role.title })} />
             <ul className="space-y-3 px-5 pb-4">
               {gap.gaps.map((item) => (
                 <li key={item.skillId}>
@@ -223,10 +233,10 @@ export default function Learning() {
           </Card>
 
           <Card tone="flat">
-            <CardHeader title="Learning Outcome" hint="สิ่งที่เรียนไปแล้ว ขยับระดับจริงเท่าไร" />
+            <CardHeader title={t('learning.outcomeTitle')} hint={t('learning.outcomeHint')} />
             <div className="space-y-3 px-5 pb-4">
               {outcomes.length === 0 ? (
-                <p className="text-small text-haze">ยังไม่มีประวัติการเรียนที่บันทึกไว้</p>
+                <p className="text-small text-haze">{t('learning.noHistory')}</p>
               ) : (
                 outcomes.map(({ record, outcome }) => (
                   <div
@@ -240,7 +250,12 @@ export default function Learning() {
                       <Badge tone="muted">{record.type}</Badge>
                     </div>
                     <p className="mt-1 text-micro text-haze">
-                      {skillName(record.targetSkill)} · จบเมื่อ <span className="num">{record.completedOn}</span>
+                      <NumericText>
+                        {t('learning.completedOn', {
+                          skill: skillName(record.targetSkill),
+                          date: record.completedOn,
+                        })}
+                      </NumericText>
                     </p>
 
                     <div className="mt-2.5 flex items-center gap-2">
@@ -265,11 +280,11 @@ export default function Learning() {
                     {outcome.lowOutcomeFlag ? (
                       <p className="mt-2 flex items-start gap-1.5 text-micro leading-relaxed text-warn">
                         <TriangleAlert size={12} className="mt-0.5 shrink-0" />
-                        <NumericText>{outcome.message}</NumericText>
+                        <NumericText>{renderMsg(outcome.message)}</NumericText>
                       </p>
                     ) : (
                       <p className="mt-2 text-micro text-haze">
-                        <NumericText>{outcome.message}</NumericText>
+                        <NumericText>{renderMsg(outcome.message)}</NumericText>
                       </p>
                     )}
                   </div>

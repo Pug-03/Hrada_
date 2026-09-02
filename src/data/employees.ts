@@ -1,3 +1,5 @@
+import { bi, type LocalizedText } from '@/lib/i18n/types'
+
 import type {
   Employee,
   Evidence,
@@ -17,9 +19,14 @@ export const HISTORY_MONTHS = [
   '2026-08',
 ] as const
 
-const ev = (kind: EvidenceKind, detail: string, year: number): Evidence => ({
+/**
+ * Evidence detail is bilingual. Project names, certifications and assessment
+ * scores are proper nouns and read the same either way, so a plain string is
+ * accepted and used for both locales; prose gets an explicit pair.
+ */
+const ev = (kind: EvidenceKind, detail: string | LocalizedText, year: number): Evidence => ({
   kind,
-  detail,
+  detail: typeof detail === 'string' ? bi(detail, detail) : detail,
   year,
 })
 
@@ -59,21 +66,21 @@ export const EMPLOYEES: Employee[] = [
       sk('digital-marketing', 4.5, [
         ev('Project', 'Rebrand Launch Q4', 2025),
         ev('Certification', 'Google Ads Search Professional', 2025),
-        ev('Manager Review', 'ทำแคมเปญได้เองทั้งวงจร', 2025),
+        ev('Manager Review', bi('ทำแคมเปญได้เองทั้งวงจร', 'Runs a campaign end to end alone'), 2025),
       ]),
       sk('content-creation', 4.1, [
         ev('Project', 'Content Engine 2025', 2025),
-        ev('Peer Feedback', 'ทีมขอให้ช่วยรีวิวงานเขียนประจำ', 2025),
+        ev('Peer Feedback', bi('ทีมขอให้ช่วยรีวิวงานเขียนประจำ', 'The team routinely asks them to review writing'), 2025),
       ]),
       sk('client-handling', 4.0, [
         ev('Project', 'Retail Client Onboarding', 2025),
-        ev('Manager Review', 'ลูกค้ารายใหญ่ขอทำงานด้วยต่อเนื่อง', 2024),
+        ev('Manager Review', bi('ลูกค้ารายใหญ่ขอทำงานด้วยต่อเนื่อง', 'Major clients ask to keep working with them'), 2024),
       ]),
       sk('data-analysis', 3.2, [
         ev('Assessment', 'Marketing Analytics 74/100', 2026),
         ev('Project', 'Campaign ROI Review', 2025),
       ]),
-      sk('leadership', 2.1, [ev('Peer Feedback', 'เริ่มช่วยดูแลน้องฝึกงาน', 2026)]),
+      sk('leadership', 2.1, [ev('Peer Feedback', bi('เริ่มช่วยดูแลน้องฝึกงาน', 'Has started mentoring the intern'), 2026)]),
       sk('presentation', 2.9),
       sk('seo', 2.9),
       sk('copywriting', 2.8),
@@ -131,7 +138,7 @@ export const EMPLOYEES: Employee[] = [
       sk('data-analysis', 4.8, [
         ev('Project', 'Customer Segmentation Model', 2025),
         ev('Certification', 'Advanced Analytics Practitioner', 2024),
-        ev('Manager Review', 'เป็นคนตั้งมาตรฐานการวิเคราะห์ของบริษัท', 2025),
+        ev('Manager Review', bi('เป็นคนตั้งมาตรฐานการวิเคราะห์ของบริษัท', 'Sets the company’s analysis standard'), 2025),
       ]),
       sk('sql', 4.7, [
         ev('Project', 'Warehouse Migration', 2025),
@@ -139,11 +146,11 @@ export const EMPLOYEES: Employee[] = [
       ]),
       sk('ai-tools', 3.9, [
         ev('Project', 'Forecast Automation Pilot', 2026),
-        ev('Peer Feedback', 'ทีมมาปรึกษาเรื่องการใช้เครื่องมือ AI', 2026),
+        ev('Peer Feedback', bi('ทีมมาปรึกษาเรื่องการใช้เครื่องมือ AI', 'The team comes to them about AI tooling'), 2026),
       ]),
       sk('leadership', 3.4, [
-        ev('Manager Review', 'ดูแลทีม Data 3 คน', 2025),
-        ev('Peer Feedback', 'ตัดสินใจแทนทีมได้เวลางานเร่ง', 2025),
+        ev('Manager Review', bi('ดูแลทีม Data 3 คน', 'Leads a Data team of 3'), 2025),
+        ev('Peer Feedback', bi('ตัดสินใจแทนทีมได้เวลางานเร่ง', 'Decides for the team when the work is urgent'), 2025),
       ]),
       sk('presentation', 2.9),
       sk('project-management', 2.8),
@@ -211,7 +218,7 @@ export const EMPLOYEES: Employee[] = [
       ]),
       sk('digital-marketing', 3.6, [
         ev('Project', 'Paid Acquisition Revamp', 2025),
-        ev('Manager Review', 'คุมงบโฆษณาได้เองแล้ว', 2025),
+        ev('Manager Review', bi('คุมงบโฆษณาได้เองแล้ว', 'Runs the ad budget unaided now'), 2025),
       ]),
       sk('data-analysis', 3.5, [
         ev('Project', 'Funnel Diagnostics', 2026),
@@ -219,11 +226,11 @@ export const EMPLOYEES: Employee[] = [
       ]),
       sk('content-creation', 3.4, [
         ev('Project', 'Organic Traffic Recovery', 2025),
-        ev('Peer Feedback', 'เขียน brief ให้ทีม content ได้ชัด', 2025),
+        ev('Peer Feedback', bi('เขียน brief ให้ทีม content ได้ชัด', 'Writes clear briefs for the content team'), 2025),
       ]),
       sk('client-handling', 3.3, [
         ev('Project', 'Partner Co-marketing', 2025),
-        ev('Manager Review', 'คุยกับพาร์ทเนอร์ได้เอง', 2025),
+        ev('Manager Review', bi('คุยกับพาร์ทเนอร์ได้เอง', 'Handles partner conversations alone'), 2025),
       ]),
       sk('copywriting', 2.9),
       sk('ai-tools', 2.8),
@@ -288,8 +295,8 @@ export const EMPLOYEES: Employee[] = [
     skills: [
       sk('content-creation', 4.6, [
         ev('Project', 'Content Engine 2025', 2025),
-        ev('Manager Review', 'เป็นคนกำหนด tone ของแบรนด์', 2025),
-        ev('Peer Feedback', 'ทุกทีมส่งงานให้ตรวจก่อนเผยแพร่', 2026),
+        ev('Manager Review', bi('เป็นคนกำหนด tone ของแบรนด์', 'Sets the brand’s tone of voice'), 2025),
+        ev('Peer Feedback', bi('ทุกทีมส่งงานให้ตรวจก่อนเผยแพร่', 'Every team sends work past them before it ships'), 2026),
       ]),
       sk('copywriting', 4.4, [
         ev('Project', 'Rebrand Launch Q4', 2025),
@@ -297,7 +304,7 @@ export const EMPLOYEES: Employee[] = [
       ]),
       sk('graphic-design', 3.5, [
         ev('Project', 'Social Template System', 2025),
-        ev('Peer Feedback', 'ทำ template ให้ทีมใช้ต่อได้', 2025),
+        ev('Peer Feedback', bi('ทำ template ให้ทีมใช้ต่อได้', 'Built templates the team still works from'), 2025),
       ]),
       sk('digital-marketing', 2.9),
       sk('presentation', 2.6),
@@ -412,19 +419,19 @@ export const EMPLOYEES: Employee[] = [
       sk('coaching', 4.2, [
         ev('Project', 'Manager Coaching Circle', 2025),
         ev('Certification', 'ICF Associate Coach', 2023),
-        ev('Peer Feedback', 'หัวหน้าทีมอื่นขอคำปรึกษาประจำ', 2026),
+        ev('Peer Feedback', bi('หัวหน้าทีมอื่นขอคำปรึกษาประจำ', 'Other team leads consult them regularly'), 2026),
       ]),
       sk('leadership', 4.0, [
-        ev('Manager Review', 'ดูแลงานคนทั้งบริษัท 126 คน', 2025),
+        ev('Manager Review', bi('ดูแลงานคนทั้งบริษัท 126 คน', 'Looks after people matters for all 126 staff'), 2025),
         ev('Project', 'Performance Cycle Redesign', 2025),
       ]),
       sk('presentation', 3.8, [
         ev('Project', 'Town Hall Program', 2025),
-        ev('Peer Feedback', 'สื่อสารเรื่องยากให้เข้าใจง่าย', 2025),
+        ev('Peer Feedback', bi('สื่อสารเรื่องยากให้เข้าใจง่าย', 'Makes difficult topics easy to follow'), 2025),
       ]),
       sk('project-management', 3.2, [
         ev('Project', 'Performance Cycle Redesign', 2025),
-        ev('Manager Review', 'ปิดโครงการตรงเวลาทุกรอบ', 2025),
+        ev('Manager Review', bi('ปิดโครงการตรงเวลาทุกรอบ', 'Closes every project cycle on time'), 2025),
       ]),
       sk('client-handling', 2.9),
       sk('financial-analysis', 2.3),
@@ -480,20 +487,20 @@ export const EMPLOYEES: Employee[] = [
     skills: [
       sk('client-handling', 4.6, [
         ev('Project', 'Enterprise Renewal Push', 2025),
-        ev('Manager Review', 'รักษาลูกค้ารายใหญ่ไว้ได้ทั้งหมด', 2025),
-        ev('Peer Feedback', 'ทีมขายเอาวิธีของเขาไปใช้ต่อ', 2026),
+        ev('Manager Review', bi('รักษาลูกค้ารายใหญ่ไว้ได้ทั้งหมด', 'Retained every major account'), 2025),
+        ev('Peer Feedback', bi('ทีมขายเอาวิธีของเขาไปใช้ต่อ', 'The sales team adopted their approach'), 2026),
       ]),
       sk('presentation', 4.2, [
         ev('Project', 'Enterprise Renewal Push', 2025),
         ev('Assessment', 'Client Pitch Review 90/100', 2025),
       ]),
       sk('leadership', 3.9, [
-        ev('Manager Review', 'ดูแลทีมขาย 6 คน', 2025),
+        ev('Manager Review', bi('ดูแลทีมขาย 6 คน', 'Leads a sales team of 6'), 2025),
         ev('Project', 'Sales Playbook v2', 2026),
       ]),
       sk('market-research', 3.0, [
         ev('Project', 'Competitive Pricing Study', 2025),
-        ev('Peer Feedback', 'ให้ข้อมูลตลาดกับทีม Product', 2025),
+        ev('Peer Feedback', bi('ให้ข้อมูลตลาดกับทีม Product', 'Feeds market intelligence to the Product team'), 2025),
       ]),
       sk('coaching', 2.9),
       sk('project-management', 2.7),
@@ -556,11 +563,11 @@ export const EMPLOYEES: Employee[] = [
     skills: [
       sk('client-handling', 3.3, [
         ev('Project', 'SMB Outbound Sprint', 2026),
-        ev('Manager Review', 'ดูแลลูกค้ารายเล็กได้เอง', 2025),
+        ev('Manager Review', bi('ดูแลลูกค้ารายเล็กได้เอง', 'Handles smaller accounts alone'), 2025),
       ]),
       sk('presentation', 3.0, [
         ev('Assessment', 'Pitch Review 72/100', 2026),
-        ev('Peer Feedback', 'นำเสนอได้ดีขึ้นชัดเจนหลังฝึก', 2026),
+        ev('Peer Feedback', bi('นำเสนอได้ดีขึ้นชัดเจนหลังฝึก', 'Presenting improved markedly after training'), 2026),
       ]),
       sk('market-research', 2.4),
       sk('content-creation', 2.2),
@@ -622,15 +629,15 @@ export const EMPLOYEES: Employee[] = [
     skills: [
       sk('product-management', 4.4, [
         ev('Project', 'Self-serve Onboarding', 2025),
-        ev('Manager Review', 'ตัดสินใจ trade-off ของสินค้าได้เอง', 2025),
-        ev('Peer Feedback', 'ทีมวิศวกรรมเข้าใจโจทย์ชัดขึ้นมาก', 2026),
+        ev('Manager Review', bi('ตัดสินใจ trade-off ของสินค้าได้เอง', 'Makes product trade-off calls unaided'), 2025),
+        ev('Peer Feedback', bi('ทีมวิศวกรรมเข้าใจโจทย์ชัดขึ้นมาก', 'The engineering team understands the brief far better'), 2026),
       ]),
       sk('ux-research', 3.6, [
         ev('Project', 'Churn Interview Round', 2025),
-        ev('Peer Feedback', 'ตั้งคำถามสัมภาษณ์ได้คม', 2025),
+        ev('Peer Feedback', bi('ตั้งคำถามสัมภาษณ์ได้คม', 'Frames sharp interview questions'), 2025),
       ]),
       sk('leadership', 3.5, [
-        ev('Manager Review', 'นำทีมข้ามสายงาน 5 คน', 2025),
+        ev('Manager Review', bi('นำทีมข้ามสายงาน 5 คน', 'Led a cross-functional team of 5'), 2025),
         ev('Project', 'Self-serve Onboarding', 2025),
       ]),
       sk('data-analysis', 3.3, [
@@ -639,7 +646,7 @@ export const EMPLOYEES: Employee[] = [
       ]),
       sk('presentation', 3.0, [
         ev('Project', 'Quarterly Product Review', 2026),
-        ev('Peer Feedback', 'สรุปให้ผู้บริหารเข้าใจได้ใน 10 นาที', 2026),
+        ev('Peer Feedback', bi('สรุปให้ผู้บริหารเข้าใจได้ใน 10 นาที', 'Can brief the executive team in 10 minutes'), 2026),
       ]),
       sk('project-management', 2.9),
       sk('market-research', 2.8),
@@ -704,11 +711,11 @@ export const EMPLOYEES: Employee[] = [
       sk('ux-research', 4.5, [
         ev('Project', 'Churn Interview Round', 2025),
         ev('Certification', 'Human-Centered Research Practitioner', 2024),
-        ev('Manager Review', 'ออกแบบงานวิจัยเองได้ทั้งกระบวนการ', 2025),
+        ev('Manager Review', bi('ออกแบบงานวิจัยเองได้ทั้งกระบวนการ', 'Designs the whole research process alone'), 2025),
       ]),
       sk('presentation', 3.4, [
         ev('Project', 'Research Readout Series', 2026),
-        ev('Peer Feedback', 'ทำให้ผลวิจัยกลายเป็นการตัดสินใจได้', 2026),
+        ev('Peer Feedback', bi('ทำให้ผลวิจัยกลายเป็นการตัดสินใจได้', 'Turns research findings into actual decisions'), 2026),
       ]),
       sk('market-research', 2.9),
       sk('data-analysis', 2.8),
@@ -766,15 +773,15 @@ export const EMPLOYEES: Employee[] = [
       sk('software-development', 4.3, [
         ev('Project', 'Self-serve Onboarding', 2025),
         ev('Assessment', 'System Design Review 88/100', 2025),
-        ev('Peer Feedback', 'รีวิวโค้ดให้ทีมทั้งหมด', 2026),
+        ev('Peer Feedback', bi('รีวิวโค้ดให้ทีมทั้งหมด', 'Reviews code for the whole team'), 2026),
       ]),
       sk('ai-tools', 3.7, [
         ev('Project', 'Forecast Automation Pilot', 2026),
-        ev('Peer Feedback', 'วางแนวทางใช้ AI ในการเขียนโค้ดให้ทีม', 2026),
+        ev('Peer Feedback', bi('วางแนวทางใช้ AI ในการเขียนโค้ดให้ทีม', 'Set the team’s approach to AI-assisted coding'), 2026),
       ]),
       sk('sql', 3.4, [
         ev('Project', 'Warehouse Migration', 2025),
-        ev('Manager Review', 'เขียน query ที่ซับซ้อนได้เอง', 2025),
+        ev('Manager Review', bi('เขียน query ที่ซับซ้อนได้เอง', 'Writes complex queries unaided'), 2025),
       ]),
       sk('data-analysis', 2.9),
       sk('project-management', 2.2),
@@ -830,11 +837,11 @@ export const EMPLOYEES: Employee[] = [
     skills: [
       sk('project-management', 3.6, [
         ev('Project', 'Vendor Consolidation', 2025),
-        ev('Manager Review', 'คุมตารางงานหลายทีมพร้อมกันได้', 2025),
+        ev('Manager Review', bi('คุมตารางงานหลายทีมพร้อมกันได้', 'Keeps several teams’ schedules moving at once'), 2025),
       ]),
       sk('client-handling', 3.0, [
         ev('Project', 'Vendor Consolidation', 2025),
-        ev('Peer Feedback', 'ประสานกับซัพพลายเออร์ได้ราบรื่น', 2025),
+        ev('Peer Feedback', bi('ประสานกับซัพพลายเออร์ได้ราบรื่น', 'Coordinates with suppliers smoothly'), 2025),
       ]),
       sk('presentation', 2.8),
       sk('financial-analysis', 2.3),
@@ -885,7 +892,7 @@ export const EMPLOYEES: Employee[] = [
       sk('financial-analysis', 4.4, [
         ev('Project', 'Unit Economics Rebuild', 2025),
         ev('Certification', 'CFA Level II', 2024),
-        ev('Manager Review', 'ปิดงบและอธิบายให้ทีมธุรกิจเข้าใจได้', 2025),
+        ev('Manager Review', bi('ปิดงบและอธิบายให้ทีมธุรกิจเข้าใจได้', 'Closes the books and explains them to the business'), 2025),
       ]),
       sk('data-analysis', 3.6, [
         ev('Project', 'Unit Economics Rebuild', 2025),
@@ -893,7 +900,7 @@ export const EMPLOYEES: Employee[] = [
       ]),
       sk('sql', 3.1, [
         ev('Project', 'Revenue Reporting Automation', 2026),
-        ev('Peer Feedback', 'ดึงข้อมูลเองได้ ไม่ต้องรอทีม Data', 2026),
+        ev('Peer Feedback', bi('ดึงข้อมูลเองได้ ไม่ต้องรอทีม Data', 'Pulls their own data without waiting on the Data team'), 2026),
       ]),
       sk('presentation', 2.7),
       sk('market-research', 2.6),

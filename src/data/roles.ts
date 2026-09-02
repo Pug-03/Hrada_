@@ -1,3 +1,5 @@
+import { bi } from '@/lib/i18n/types'
+
 import type { RoleDefinition } from './types'
 
 /**
@@ -17,7 +19,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'marketing-manager',
     title: 'Marketing Manager',
     department: 'Marketing',
-    rationale: 'คุมทีมและงบการตลาดทั้งหมด ต้องนำทีมได้จริง ไม่ใช่แค่ทำงานเก่ง',
+    rationale: bi(
+      'คุมทีมและงบการตลาดทั้งหมด ต้องนำทีมได้จริง ไม่ใช่แค่ทำงานเก่ง',
+      'Owns the team and the whole marketing budget — has to actually lead, not just do the work well',
+    ),
     requiredSkills: [
       { skillId: 'digital-marketing', level: 4.0 },
       { skillId: 'content-creation', level: 3.5 },
@@ -30,7 +35,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'head-of-data',
     title: 'Head of Data',
     department: 'Data',
-    rationale: 'วางกลยุทธ์ข้อมูลระดับองค์กร และต้องสร้างคนในทีมต่อได้',
+    rationale: bi(
+      'วางกลยุทธ์ข้อมูลระดับองค์กร และต้องสร้างคนในทีมต่อได้',
+      'Sets data strategy for the organisation, and has to build the people on the team',
+    ),
     requiredSkills: [
       { skillId: 'data-analysis', level: 4.5 },
       { skillId: 'sql', level: 4.5 },
@@ -44,7 +52,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'growth-lead',
     title: 'Growth Lead',
     department: 'Marketing',
-    rationale: 'เป็นเจ้าของตัวเลขการเติบโต ต้องอ่านข้อมูลเองและนำทีมเล็กได้',
+    rationale: bi(
+      'เป็นเจ้าของตัวเลขการเติบโต ต้องอ่านข้อมูลเองและนำทีมเล็กได้',
+      'Owns the growth numbers, reads the data unaided, and leads a small team',
+    ),
     requiredSkills: [
       { skillId: 'seo', level: 3.5 },
       { skillId: 'digital-marketing', level: 3.5 },
@@ -57,7 +68,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'creative-lead',
     title: 'Creative Lead',
     department: 'Marketing',
-    rationale: 'ดูแลมาตรฐานงานสร้างสรรค์ทั้งหมด และคุมคิวงานหลายชิ้นพร้อมกัน',
+    rationale: bi(
+      'ดูแลมาตรฐานงานสร้างสรรค์ทั้งหมด และคุมคิวงานหลายชิ้นพร้อมกัน',
+      'Holds the standard for all creative work and keeps several jobs moving at once',
+    ),
     requiredSkills: [
       { skillId: 'content-creation', level: 4.5 },
       { skillId: 'copywriting', level: 4.0 },
@@ -70,7 +84,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'data-analyst',
     title: 'Data Analyst',
     department: 'Data',
-    rationale: 'ทำงานวิเคราะห์ได้เองเต็มตัว และนำเสนอผลให้ทีมธุรกิจเข้าใจได้',
+    rationale: bi(
+      'ทำงานวิเคราะห์ได้เองเต็มตัว และนำเสนอผลให้ทีมธุรกิจเข้าใจได้',
+      'Runs analysis independently and presents the result so the business side follows it',
+    ),
     requiredSkills: [
       { skillId: 'sql', level: 3.5 },
       { skillId: 'data-analysis', level: 3.5 },
@@ -82,7 +99,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'hr-director',
     title: 'HR Director',
     department: 'Operations',
-    rationale: 'วางแผนกำลังคนระดับองค์กร ต้องคุยเรื่องงบและตัวเลขกับผู้บริหารได้',
+    rationale: bi(
+      'วางแผนกำลังคนระดับองค์กร ต้องคุยเรื่องงบและตัวเลขกับผู้บริหารได้',
+      'Plans headcount organisation-wide, and talks budget and numbers with the executive team',
+    ),
     requiredSkills: [
       { skillId: 'coaching', level: 4.0 },
       { skillId: 'leadership', level: 4.0 },
@@ -95,7 +115,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'sales-director',
     title: 'Sales Director',
     department: 'Sales',
-    rationale: 'รับผิดชอบเป้าทั้งสายงาน ต้องสร้างทีมขายรุ่นถัดไปได้ด้วย',
+    rationale: bi(
+      'รับผิดชอบเป้าทั้งสายงาน ต้องสร้างทีมขายรุ่นถัดไปได้ด้วย',
+      'Carries the target for the whole function, and builds the next generation of the sales team',
+    ),
     requiredSkills: [
       { skillId: 'client-handling', level: 4.5 },
       { skillId: 'presentation', level: 4.0 },
@@ -108,7 +131,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'senior-sales-executive',
     title: 'Senior Sales Executive',
     department: 'Sales',
-    rationale: 'ดูแลลูกค้ารายใหญ่ได้เอง ตั้งแต่หาโอกาสจนปิดดีล',
+    rationale: bi(
+      'ดูแลลูกค้ารายใหญ่ได้เอง ตั้งแต่หาโอกาสจนปิดดีล',
+      'Handles major accounts alone, from finding the opportunity to closing it',
+    ),
     requiredSkills: [
       { skillId: 'client-handling', level: 4.0 },
       { skillId: 'presentation', level: 3.5 },
@@ -120,7 +146,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'head-of-product',
     title: 'Head of Product',
     department: 'Product',
-    rationale: 'ตัดสินใจทิศทางสินค้า ต้องคุยกับลูกค้าและทีมขายได้โดยตรง',
+    rationale: bi(
+      'ตัดสินใจทิศทางสินค้า ต้องคุยกับลูกค้าและทีมขายได้โดยตรง',
+      'Decides product direction, and talks to customers and the sales team directly',
+    ),
     requiredSkills: [
       { skillId: 'product-management', level: 4.0 },
       { skillId: 'ux-research', level: 3.5 },
@@ -134,7 +163,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'lead-researcher',
     title: 'Lead Researcher',
     department: 'Product',
-    rationale: 'ตั้งโจทย์วิจัยเองได้ และเปลี่ยนผลวิจัยเป็นการตัดสินใจของสินค้า',
+    rationale: bi(
+      'ตั้งโจทย์วิจัยเองได้ และเปลี่ยนผลวิจัยเป็นการตัดสินใจของสินค้า',
+      'Frames the research question and turns the findings into product decisions',
+    ),
     requiredSkills: [
       { skillId: 'ux-research', level: 4.0 },
       { skillId: 'presentation', level: 4.0 },
@@ -147,7 +179,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'tech-lead',
     title: 'Tech Lead',
     department: 'Product',
-    rationale: 'ออกแบบระบบและรีวิวงานคนอื่น ไม่ใช่แค่เขียนโค้ดของตัวเอง',
+    rationale: bi(
+      'ออกแบบระบบและรีวิวงานคนอื่น ไม่ใช่แค่เขียนโค้ดของตัวเอง',
+      'Designs the system and reviews other people’s work, not only their own code',
+    ),
     requiredSkills: [
       { skillId: 'software-development', level: 4.5 },
       { skillId: 'ai-tools', level: 4.0 },
@@ -160,7 +195,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'ops-manager',
     title: 'Ops Manager',
     department: 'Operations',
-    rationale: 'คุมงานปฏิบัติการหลายสายพร้อมกัน และคุมต้นทุนได้',
+    rationale: bi(
+      'คุมงานปฏิบัติการหลายสายพร้อมกัน และคุมต้นทุนได้',
+      'Runs several operational lines at once, and controls the cost of them',
+    ),
     requiredSkills: [
       { skillId: 'project-management', level: 4.0 },
       { skillId: 'client-handling', level: 3.5 },
@@ -173,7 +211,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'finance-manager',
     title: 'Finance Manager',
     department: 'Operations',
-    rationale: 'ปิดงบและวางแผนการเงินได้เอง พร้อมอธิบายให้ทีมที่ไม่ใช่สายการเงินเข้าใจ',
+    rationale: bi(
+      'ปิดงบและวางแผนการเงินได้เอง พร้อมอธิบายให้ทีมที่ไม่ใช่สายการเงินเข้าใจ',
+      'Closes the books and plans independently, and explains it to people outside finance',
+    ),
     requiredSkills: [
       { skillId: 'financial-analysis', level: 4.0 },
       { skillId: 'data-analysis', level: 3.5 },
@@ -186,7 +227,10 @@ export const ROLES: RoleDefinition[] = [
     id: 'marketing-executive',
     title: 'Marketing Executive',
     department: 'Marketing',
-    rationale: 'รับผิดชอบแคมเปญของตัวเองได้ตั้งแต่ต้นจนจบ',
+    rationale: bi(
+      'รับผิดชอบแคมเปญของตัวเองได้ตั้งแต่ต้นจนจบ',
+      'Owns a campaign of their own from beginning to end',
+    ),
     requiredSkills: [
       { skillId: 'digital-marketing', level: 3.0 },
       { skillId: 'content-creation', level: 3.0 },

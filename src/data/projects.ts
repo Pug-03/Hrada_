@@ -1,3 +1,5 @@
+import { bi } from '@/lib/i18n/types'
+
 import type { ProjectSpec } from './types'
 
 /** §9.7 — the three projects a Manager can staff. */
@@ -5,8 +7,10 @@ export const PROJECTS: ProjectSpec[] = [
   {
     id: 'proj-ai-marketing',
     name: 'AI Marketing Campaign',
-    description:
+    description: bi(
       'แคมเปญการตลาดที่ใช้เครื่องมือ AI ช่วยผลิตและปรับเนื้อหาแบบรายสัปดาห์ วัดผลด้วยข้อมูลจริง',
+      'A marketing campaign using AI tooling to produce and adjust content weekly, measured against real data',
+    ),
     requiredSkills: [
       { skillId: 'digital-marketing', level: 4.0 },
       { skillId: 'data-analysis', level: 3.5 },
@@ -19,7 +23,10 @@ export const PROJECTS: ProjectSpec[] = [
   {
     id: 'proj-customer-retention',
     name: 'Customer Retention Program',
-    description: 'โครงการลดการยกเลิกบริการของลูกค้าเดิม โดยใช้ข้อมูลการใช้งานหาสัญญาณเสี่ยงล่วงหน้า',
+    description: bi(
+      'โครงการลดการยกเลิกบริการของลูกค้าเดิม โดยใช้ข้อมูลการใช้งานหาสัญญาณเสี่ยงล่วงหน้า',
+      'A programme to reduce churn among existing customers, using usage data to spot risk signals early',
+    ),
     requiredSkills: [
       { skillId: 'data-analysis', level: 3.5 },
       { skillId: 'client-handling', level: 4.0 },
@@ -31,7 +38,10 @@ export const PROJECTS: ProjectSpec[] = [
   {
     id: 'proj-product-analytics',
     name: 'Product Analytics Revamp',
-    description: 'รื้อระบบเก็บและวิเคราะห์ข้อมูลการใช้งานสินค้าใหม่ทั้งหมด ให้ทีม Product ใช้ตัดสินใจได้เร็วขึ้น',
+    description: bi(
+      'รื้อระบบเก็บและวิเคราะห์ข้อมูลการใช้งานสินค้าใหม่ทั้งหมด ให้ทีม Product ใช้ตัดสินใจได้เร็วขึ้น',
+      'A full rebuild of how product usage is captured and analysed, so the Product team can decide faster',
+    ),
     requiredSkills: [
       { skillId: 'sql', level: 4.0 },
       { skillId: 'ux-research', level: 3.5 },

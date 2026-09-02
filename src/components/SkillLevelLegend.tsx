@@ -1,14 +1,16 @@
 import { SKILL_BANDS } from '@/data/skills'
+import { useT } from '@/lib/i18n'
 
 /** §7 — the level scale, reachable on demand from the Employee Skill Profile. */
 export function SkillLevelLegend() {
+  const t = useT()
   return (
     <table className="w-full text-left text-small">
       <thead>
         <tr className="text-micro text-haze">
-          <th className="pb-2 font-normal">Level</th>
-          <th className="pb-2 font-normal">ชื่อระดับ</th>
-          <th className="pb-2 font-normal">หมายถึง</th>
+          <th className="pb-2 font-normal">{t('scale.level')}</th>
+          <th className="pb-2 font-normal">{t('scale.name')}</th>
+          <th className="pb-2 font-normal">{t('scale.meaning')}</th>
         </tr>
       </thead>
       <tbody>
@@ -20,7 +22,7 @@ export function SkillLevelLegend() {
               </span>
             </td>
             <td className="py-2 pr-3 whitespace-nowrap">{band.name}</td>
-            <td className="py-2 leading-relaxed text-haze">{band.meaning}</td>
+            <td className="py-2 leading-relaxed text-haze">{t(`band.${band.name}`)}</td>
           </tr>
         ))}
       </tbody>

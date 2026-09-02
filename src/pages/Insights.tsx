@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { NumericText } from '@/components/ui/NumericText'
-import { Num } from '@/components/ui/Num'
+import { useI18n, type TranslationKey } from '@/lib/i18n'
+import { renderInsight } from '@/lib/i18n/insights'
 import { insightScope, visibleEmployees, type Session } from '@/lib/permissions'
-import { generateInsights, type Insight } from '@/lib/scoring'
+import { generateInsights, OWNERSHIP_BAR, type Insight, type InsightKind } from '@/lib/scoring'
 import { useSession } from '@/store/session'
 
 /**
@@ -22,39 +23,40 @@ import { useSession } from '@/store/session'
  * the rest on request, rather than burying the critical finding under them.
  */
 const GROUPS: {
-  kind: Insight['kind']
-  title: string
-  hint: string
+  kind: InsightKind
+  titleKey: TranslationKey
+  hintKey: TranslationKey
   /** Only At-Risk is capped — it is the long group, and it buries the rest. */
   cap?: number
-  capNote?: string
+  capNoteKey?: TranslationKey
 }[] = [
   {
-    kind: 'Critical Skill Gap',
-    title: 'ต้องแก้ก่อน',
-    hint: 'มีงานที่รับปากไว้แล้ว แต่ไม่มีใครทำได้ถึงระดับที่ต้องการ',
+    kind: 'critical-skill-gap',
+    titleKey: 'insights.group.critical',
+    hintKey: 'insights.group.critical.hint',
   },
   {
-    kind: 'At-Risk Skill',
-    title: 'พึ่งคนคนเดียวอยู่',
-    hint: 'มีคนเดียวในองค์กรที่ทำ skill นี้ได้ถึงระดับ 4.0',
+    kind: 'at-risk-skill',
+    titleKey: 'insights.group.atRisk',
+    hintKey: 'insights.group.atRisk.hint',
     cap: 5,
-    capNote: 'เรียงจากคนสำรองที่อ่อนที่สุดก่อน — ข้อบนสุดคือ skill ที่คนถัดไปห่างจากเจ้าของ skill มากที่สุด',
+    capNoteKey: 'insights.group.atRisk.note',
   },
   {
-    kind: 'Workload Risk',
-    title: 'คนที่รับงานหนักเกินไป',
-    hint: 'Workload เกิน 85% และเป็นคนที่ผลงานสูง — กลุ่มที่เสี่ยงจะหมดไฟที่สุด',
+    kind: 'workload-risk',
+    titleKey: 'insights.group.workload',
+    hintKey: 'insights.group.workload.hint',
   },
   {
-    kind: 'Growth Opportunity',
-    title: 'โอกาส',
-    hint: 'คนที่กำลังโตเร็ว และคนที่พร้อมสำหรับตำแหน่งถัดไป',
+    kind: 'growth-opportunity',
+    titleKey: 'insights.group.opportunity',
+    hintKey: 'insights.group.opportunity.hint',
   },
 ]
 
 export default function Insights() {
   const session = useSession() as unknown as Session
+  const { t } = useI18n()
   const employees = useMemo(() => visibleEmployees(session), [session])
   const insights = useMemo(() => generateInsights(employees), [employees])
   const scope = insightScope(session)
@@ -62,19 +64,19 @@ export default function Insights() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-title leading-tight font-semibold">AI Workforce Insights</h1>
+        <h1 className="text-title leading-tight font-semibold">{t('nav.insights')}</h1>
         <p className="mt-1 text-small text-haze">
           {scope === 'team'
-            ? `ขอบเขตข้อมูล: ทีม ${session.managerDepartment} เท่านั้น`
-            : 'ขอบเขตข้อมูล: ทั้งองค์กร'}{' '}
-          · ทุกข้อกดดูได้ว่าคำนวณจากอะไรและใช้สูตรไหน
+            ? t('common.scopeTeam', { department: session.managerDepartment ?? '' })
+            : t('common.scopeOrg')}{' '}
+          · {t('insights.hint')}
         </p>
       </div>
 
       {GROUPS.map((group) => {
         const items = insights.filter((i) => i.kind === group.kind)
         if (items.length === 0) return null
-        return <InsightGroup key={group.kind} group={group} items={items} />
+        return <InsightGroup key={group.kind} group={group} items={items} bar={OWNERSHIP_BAR} />
       })}
     </div>
   )
@@ -83,11 +85,14 @@ export default function Insights() {
 function InsightGroup({
   group,
   items,
+  bar,
 }: {
   group: (typeof GROUPS)[number]
   items: Insight[]
+  bar: number
 }) {
   const [expanded, setExpanded] = useState(false)
+  const { t } = useI18n()
   const cap = group.cap ?? Number.POSITIVE_INFINITY
   const shown = expanded ? items : items.slice(0, cap)
   const hidden = items.length - shown.length
@@ -96,11 +101,11 @@ function InsightGroup({
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-section font-semibold">
-          {group.title}
+          {t(group.titleKey)}
           <span className="num ml-2 text-small text-haze">{items.length}</span>
         </h2>
         <p className="text-micro text-haze">
-          <NumericText>{group.hint}</NumericText>
+          <NumericText>{t(group.hintKey, { bar: bar.toFixed(1) })}</NumericText>
         </p>
       </div>
 
@@ -115,19 +120,15 @@ function InsightGroup({
           onClick={() => setExpanded((e) => !e)}
           className="mt-2.5 text-small text-sky transition-colors duration-150 hover:text-text"
         >
-          {expanded ? (
-            'ย่อกลับ'
-          ) : (
-            <>
-              แสดงทั้งหมด <Num value={items.length} /> ข้อ (ซ่อนอยู่ <Num value={hidden} />)
-            </>
-          )}
+          <NumericText>
+            {expanded ? t('common.collapse') : t('common.showAll', { count: items.length, hidden })}
+          </NumericText>
         </button>
       ) : null}
 
-      {group.capNote && hidden > 0 ? (
+      {group.capNoteKey && hidden > 0 ? (
         <p className="mt-1.5 text-micro leading-relaxed text-haze">
-          <NumericText>{group.capNote}</NumericText>
+          <NumericText>{t(group.capNoteKey)}</NumericText>
         </p>
       ) : null}
     </section>
@@ -137,6 +138,8 @@ function InsightGroup({
 function InsightCard({ insight }: { insight: Insight }) {
   const [open, setOpen] = useState(false)
   const reduced = useReducedMotion()
+  const { t, locale } = useI18n()
+  const rendered = renderInsight(insight, t, locale)
 
   const tone =
     insight.severity === 'critical' ? 'critical' : insight.severity === 'warn' ? 'warn' : 'sky'
@@ -160,12 +163,12 @@ function InsightCard({ insight }: { insight: Insight }) {
         >
           <div className="min-w-0">
             <p className="text-body leading-relaxed">
-              <NumericText>{insight.title}</NumericText>
+              <NumericText>{rendered.title}</NumericText>
             </p>
-            <p className="mt-1 text-micro text-haze">แตะเพื่อดูว่าคำนวณจากอะไร</p>
+            <p className="mt-1 text-micro text-haze">{t('insights.expandHint')}</p>
           </div>
           <span className="flex shrink-0 items-center gap-2">
-            <Badge tone={tone}>{insight.kind}</Badge>
+            <Badge tone={tone}>{t(`kind.${insight.kind}`)}</Badge>
             <ChevronDown
               size={14}
               className={`text-haze transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
@@ -184,19 +187,19 @@ function InsightCard({ insight }: { insight: Insight }) {
             >
               <div className="space-y-3 border-t border-line/70 px-4 py-3.5">
                 <div>
-                  <p className="text-micro text-haze">คำนวณจาก</p>
+                  <p className="text-micro text-haze">{t('insights.computedFrom')}</p>
                   <p className="mt-1 text-small leading-relaxed">
-                    <NumericText>{insight.computedFrom}</NumericText>
+                    <NumericText>{rendered.computedFrom}</NumericText>
                   </p>
                 </div>
                 <div>
-                  <p className="text-micro text-haze">สูตรที่ใช้</p>
+                  <p className="text-micro text-haze">{t('insights.formula')}</p>
                   <p className="mt-1 text-small leading-relaxed text-haze">
-                    <NumericText>{insight.formula}</NumericText>
+                    <NumericText>{rendered.formula}</NumericText>
                   </p>
                 </div>
-                <Link to={insight.action.to}>
-                  <Button variant="primary">{insight.action.label}</Button>
+                <Link to={insight.to}>
+                  <Button variant="primary">{rendered.actionLabel}</Button>
                 </Link>
               </div>
             </motion.div>

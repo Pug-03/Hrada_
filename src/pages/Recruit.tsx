@@ -2,11 +2,10 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AlertTriangle, CalendarCheck, ThumbsDown, ThumbsUp, Undo2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { AnalysisLoader } from '@/components/ui/AnalysisLoader'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { AnalysisLoader } from '@/components/ui/AnalysisLoader'
-import { useAnalysis } from '@/hooks/useAnalysis'
 import { ScoreBreakdown } from '@/components/ui/Explain'
 import { NumericText } from '@/components/ui/NumericText'
 import { Num } from '@/components/ui/Num'
@@ -14,12 +13,14 @@ import { SlidePanel } from '@/components/ui/SlidePanel'
 import { getJob, JOBS } from '@/data/jobs'
 import { skillName } from '@/data/skills'
 import type { Candidate } from '@/data/types'
+import { useAnalysis } from '@/hooks/useAnalysis'
+import { useI18n, useName, useText, type TranslationKey } from '@/lib/i18n'
 import { canViewSalary, type Session } from '@/lib/permissions'
 import { rankCandidates, type CandidateMatchResult } from '@/lib/scoring'
 import { motion as motionTokens } from '@/lib/theme'
 import { useDecisions, type CandidateDecision } from '@/store/decisions'
-import { useToast } from '@/store/toast'
 import { useSession } from '@/store/session'
+import { useToast } from '@/store/toast'
 
 /**
  * §11 Screen 4. Two rules shape this screen:
@@ -28,15 +29,23 @@ import { useSession } from '@/store/session'
  *   — no button rejects anybody automatically (§12). Pass / Reject / Schedule
  *     Interview are all recorded as a human's decision, and all reversible.
  */
-const DECISION_COPY: Record<CandidateDecision, { label: string; toast: string }> = {
-  interview: { label: 'นัดสัมภาษณ์', toast: 'นัดสัมภาษณ์แล้ว' },
-  pass: { label: 'ผ่านเข้ารอบถัดไป', toast: 'บันทึกว่าผ่านเข้ารอบถัดไปแล้ว' },
-  reject: { label: 'ไม่ไปต่อ', toast: 'บันทึกว่าไม่ไปต่อแล้ว' },
+const DECISION_LABEL: Record<CandidateDecision, TranslationKey> = {
+  interview: 'recruit.decision.interview',
+  pass: 'recruit.decision.pass',
+  reject: 'recruit.decision.reject',
+}
+const DECISION_DONE: Record<CandidateDecision, TranslationKey> = {
+  interview: 'recruit.decision.interview.done',
+  pass: 'recruit.decision.pass.done',
+  reject: 'recruit.decision.reject.done',
 }
 
 export default function Recruit() {
   const session = useSession() as unknown as Session
   const reduced = useReducedMotion()
+  const { t } = useI18n()
+  const name = useName()
+  const text = useText()
   const [jobId, setJobId] = useState(JOBS[0].id)
   const [explaining, setExplaining] = useState<{ candidate: Candidate; match: CandidateMatchResult } | null>(null)
   const { running, run } = useAnalysis(820)
@@ -59,16 +68,14 @@ export default function Recruit() {
 
   const onDecide = (candidate: Candidate, decision: CandidateDecision) => {
     decide(candidate.id, decision)
-    pushToast(`${DECISION_COPY[decision].toast} — ${candidate.name}`)
+    pushToast(`${t(DECISION_DONE[decision])} — ${name(candidate)}`)
   }
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-title leading-tight font-semibold">AI Recruit</h1>
-        <p className="mt-1 text-small text-haze">
-          จัดอันดับผู้สมัครจาก Match Score พร้อมคำอธิบายทุกคะแนน — ระบบไม่ตัดใครออกเอง
-        </p>
+        <h1 className="text-title leading-tight font-semibold">{t('nav.recruit')}</h1>
+        <p className="mt-1 text-small text-haze">{t('recruit.hint')}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -90,33 +97,33 @@ export default function Recruit() {
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card tone="flat" className="lg:col-span-2">
-          <CardHeader title={job.title} hint={job.description} />
+          <CardHeader title={job.title} hint={text(job.description)} />
           <div className="space-y-3 px-5 pb-4 text-small">
-            <Requirement label="Required" items={job.requiredSkills} />
-            <Requirement label="Preferred" items={job.preferredSkills} />
+            <Requirement label={t('recruit.required')} items={job.requiredSkills} />
+            <Requirement label={t('recruit.preferred')} items={job.preferredSkills} />
             <div className="flex justify-between border-t border-line/70 pt-3 text-haze">
-              <span>ประสบการณ์ขั้นต่ำ</span>
-              <span className="num text-text">{job.minExperience} ปี</span>
+              <span>{t('recruit.minExperience')}</span>
+              <span className="num text-text">{t('common.years', { count: job.minExperience })}</span>
             </div>
             <div className="flex justify-between text-haze">
-              <span>รูปแบบงาน</span>
+              <span>{t('recruit.employment')}</span>
               <span className="text-text">
-                {job.employmentType} · <NumericText>{job.location}</NumericText>
+                {job.employmentType} · <NumericText>{text(job.location)}</NumericText>
               </span>
             </div>
             {canViewSalary(session) ? (
               <div className="flex justify-between text-haze">
-                <span>Salary Range</span>
+                <span>{t('recruit.salary')}</span>
                 <span className="num text-text">
                   {job.salaryRange.min.toLocaleString()}–{job.salaryRange.max.toLocaleString()} {job.salaryRange.currency}
                 </span>
               </div>
             ) : null}
             <div className="border-t border-line/70 pt-3">
-              <p className="text-micro text-haze">ความรับผิดชอบ</p>
+              <p className="text-micro text-haze">{t('recruit.responsibilities')}</p>
               <ul className="mt-1.5 space-y-1 text-haze">
                 {job.responsibilities.map((item) => (
-                  <li key={item}>· {item}</li>
+                  <li key={text(item)}>· {text(item)}</li>
                 ))}
               </ul>
             </div>
@@ -126,7 +133,11 @@ export default function Recruit() {
         <div className="lg:col-span-3">
           {running ? (
             <AnalysisLoader
-              message={`กำลังวิเคราะห์ผู้สมัคร ${ranked.length} คน เทียบกับ ${job.requiredSkills.length} required skills ของ ${job.title}`}
+              message={t('recruit.analysing', {
+                candidates: ranked.length,
+                skills: job.requiredSkills.length,
+                job: job.title,
+              })}
               rows={ranked.length}
             />
           ) : (
@@ -148,12 +159,16 @@ export default function Recruit() {
                           <div className="min-w-0">
                             <p className="text-body font-semibold">
                               <span className="num mr-2 text-haze">#{index + 1}</span>
-                              {candidate.name}
+                              {name(candidate)}
                             </p>
                             <p className="mt-0.5 text-micro text-haze">
-                              {candidate.education} · ประสบการณ์{' '}
-                              <span className="num">{candidate.yearsExperience}</span> ปี · Assessment{' '}
-                              <span className="num">{candidate.assessmentScore}</span>/100
+                              <NumericText>
+                                {t('recruit.candidateMeta', {
+                                  education: text(candidate.education),
+                                  years: candidate.yearsExperience,
+                                  score: candidate.assessmentScore,
+                                })}
+                              </NumericText>
                             </p>
                           </div>
                           <div className="text-right">
@@ -166,15 +181,20 @@ export default function Recruit() {
                           <div className="mt-3 flex items-start gap-2 rounded-lg border border-critical/40 bg-critical/10 px-3 py-2">
                             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-critical" />
                             <p className="text-micro leading-relaxed text-critical">
-                              คะแนนรวมสูง แต่ยังขาด skill สำคัญเกิน <span className="num">1.0</span> ระดับ:{' '}
-                              {match.criticalGaps.map((g, i) => (
-                                <span key={g.skillId}>
-                                  {i > 0 ? ' · ' : ''}
-                                  {g.skillName} <span className="num">{g.current.toFixed(1)}</span> จากที่ต้องการ{' '}
-                                  <span className="num">{g.required.toFixed(1)}</span>
-                                </span>
-                              ))}
-                              . ข้อนี้แยกจากคะแนนโดยตั้งใจ เพราะคะแนนเฉลี่ยกลบเรื่องนี้ได้
+                              <NumericText>
+                                {t('recruit.criticalWarning', {
+                                  threshold: '1.0',
+                                  gaps: match.criticalGaps
+                                    .map((g) =>
+                                      t('recruit.criticalGapItem', {
+                                        skill: g.skillName,
+                                        current: g.current.toFixed(1),
+                                        required: g.required.toFixed(1),
+                                      }),
+                                    )
+                                    .join(' · '),
+                                })}
+                              </NumericText>
                             </p>
                           </div>
                         ) : null}
@@ -187,23 +207,25 @@ export default function Recruit() {
                           ))}
                           {match.requiredGaps.map((s) => (
                             <Badge key={s.skillId} tone="warn">
-                              {s.skillName} ขาด <span className="num">{s.gap.toFixed(1)}</span>
+                              <NumericText>
+                                {t('recruit.gapBadge', { skill: s.skillName, gap: s.gap.toFixed(1) })}
+                              </NumericText>
                             </Badge>
                           ))}
                         </div>
 
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           <Button variant="ghost" onClick={() => setExplaining({ candidate, match })}>
-                            Why this match?
+                            {t('recruit.why')}
                           </Button>
                           <div className="ml-auto flex flex-wrap gap-2">
                             {decision ? (
                               <>
                                 <Badge tone={decision === 'reject' ? 'critical' : 'sky'}>
-                                  {DECISION_COPY[decision].toast}
+                                  {t(DECISION_DONE[decision])}
                                 </Badge>
                                 <Button variant="ghost" icon={<Undo2 size={14} />} onClick={() => undo(candidate.id)}>
-                                  ยกเลิกการตัดสินใจ
+                                  {t('recruit.undo')}
                                 </Button>
                               </>
                             ) : (
@@ -213,17 +235,17 @@ export default function Recruit() {
                                   icon={<CalendarCheck size={14} />}
                                   onClick={() => onDecide(candidate, 'interview')}
                                 >
-                                  {DECISION_COPY.interview.label}
+                                  {t(DECISION_LABEL.interview)}
                                 </Button>
                                 <Button icon={<ThumbsUp size={14} />} onClick={() => onDecide(candidate, 'pass')}>
-                                  {DECISION_COPY.pass.label}
+                                  {t(DECISION_LABEL.pass)}
                                 </Button>
                                 <Button
                                   variant="danger"
                                   icon={<ThumbsDown size={14} />}
                                   onClick={() => onDecide(candidate, 'reject')}
                                 >
-                                  {DECISION_COPY.reject.label}
+                                  {t(DECISION_LABEL.reject)}
                                 </Button>
                               </>
                             )}
@@ -236,17 +258,15 @@ export default function Recruit() {
               </AnimatePresence>
             </ul>
           )}
-          <p className="mt-3 text-micro leading-relaxed text-haze">
-            ผู้สมัครที่คะแนนต่ำยังคงอยู่ในรายการพร้อมปุ่มตัดสินใจเสมอ — HRADA ไม่ตัดใครออกโดยอัตโนมัติ
-          </p>
+          <p className="mt-3 text-micro leading-relaxed text-haze">{t('recruit.noAutoReject')}</p>
         </div>
       </div>
 
       <SlidePanel
         open={explaining !== null}
         onClose={() => setExplaining(null)}
-        title="Why this match?"
-        subtitle={explaining ? `${explaining.candidate.name} → ${job.title}` : undefined}
+        title={t('recruit.why')}
+        subtitle={explaining ? `${name(explaining.candidate)} → ${job.title}` : undefined}
       >
         {explaining ? (
           <>
@@ -258,13 +278,18 @@ export default function Recruit() {
 
             {explaining.match.hasCriticalGap ? (
               <div className="mt-5 rounded-lg border border-critical/40 bg-critical/10 p-3.5">
-                <p className="text-small text-critical">Critical gap</p>
+                <p className="text-small text-critical">{t('recruit.panel.criticalGap')}</p>
                 <ul className="mt-2 space-y-1 text-micro text-critical/90">
                   {explaining.match.criticalGaps.map((g) => (
                     <li key={g.skillId}>
-                      {g.skillName}: มี <span className="num">{g.current.toFixed(1)}</span> ตำแหน่งต้องการ{' '}
-                      <span className="num">{g.required.toFixed(1)}</span> (ห่าง{' '}
-                      <span className="num">{g.gap.toFixed(1)}</span> ระดับ)
+                      <NumericText>
+                        {t('recruit.panel.criticalDetail', {
+                          skill: g.skillName,
+                          current: g.current.toFixed(1),
+                          required: g.required.toFixed(1),
+                          gap: g.gap.toFixed(1),
+                        })}
+                      </NumericText>
                     </li>
                   ))}
                 </ul>
@@ -272,10 +297,10 @@ export default function Recruit() {
             ) : null}
 
             <div className="mt-5">
-              <p className="text-micro text-haze">จุดแข็งที่ตรงกับตำแหน่ง</p>
+              <p className="text-micro text-haze">{t('recruit.panel.strengths')}</p>
               <ul className="mt-1.5 space-y-1 text-small">
                 {explaining.match.strengths.length === 0 ? (
-                  <li className="text-haze">ยังไม่มี required skill ข้อไหนที่ถึงเกณฑ์</li>
+                  <li className="text-haze">{t('recruit.panel.noStrengths')}</li>
                 ) : (
                   explaining.match.strengths.map((s) => (
                     <li key={s.skillId} className="flex justify-between gap-3">
@@ -288,10 +313,10 @@ export default function Recruit() {
             </div>
 
             <div className="mt-5">
-              <p className="text-micro text-haze">Skill Gap</p>
+              <p className="text-micro text-haze">{t('recruit.panel.gaps')}</p>
               <ul className="mt-1.5 space-y-1 text-small">
                 {explaining.match.requiredGaps.length === 0 ? (
-                  <li className="text-haze">ผ่านเกณฑ์ required skills ครบทุกข้อ</li>
+                  <li className="text-haze">{t('recruit.panel.noGaps')}</li>
                 ) : (
                   explaining.match.requiredGaps.map((s) => (
                     <li key={s.skillId} className="flex justify-between gap-3">
@@ -306,17 +331,17 @@ export default function Recruit() {
             </div>
 
             <div className="mt-5">
-              <p className="text-micro text-haze">ข้อมูลประกอบ</p>
+              <p className="text-micro text-haze">{t('recruit.panel.background')}</p>
               <ul className="mt-1.5 space-y-1 text-small text-haze">
-                <li>Certifications: {explaining.candidate.certifications.join(', ') || 'ไม่มี'}</li>
-                <li>โครงการ: {explaining.candidate.projects.map((p) => p.name).join(', ')}</li>
+                <li>Certifications: {explaining.candidate.certifications.join(', ') || t('common.none')}</li>
+                <li>
+                  {t('recruit.panel.projects')}: {explaining.candidate.projects.map((p) => p.name).join(', ')}
+                </li>
                 {explaining.candidate.portfolio ? <li>Portfolio: {explaining.candidate.portfolio}</li> : null}
               </ul>
             </div>
 
-            <p className="mt-5 text-micro leading-relaxed text-haze">
-              คะแนนนี้เป็นข้อมูลประกอบการตัดสินใจของ HR เท่านั้น การตัดสินใจรับหรือไม่รับเป็นของคน
-            </p>
+            <p className="mt-5 text-micro leading-relaxed text-haze">{t('recruit.panel.caveat')}</p>
           </>
         ) : null}
       </SlidePanel>

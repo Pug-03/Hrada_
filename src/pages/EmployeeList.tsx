@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Num } from '@/components/ui/Num'
+import { useI18n, useName } from '@/lib/i18n'
 import { visibleEmployees, type Session } from '@/lib/permissions'
 import { classifyTalent, calcPromotionReadiness } from '@/lib/scoring'
 import { talentColor } from '@/lib/theme'
@@ -14,6 +15,8 @@ import { useSession } from '@/store/session'
 /** §11 Screen 3 — pick a person. Scope follows §8, so the list itself differs per role. */
 export default function EmployeeList() {
   const session = useSession() as unknown as Session
+  const { t } = useI18n()
+  const name = useName()
   const [query, setQuery] = useState('')
   const employees = useMemo(() => visibleEmployees(session), [session])
 
@@ -24,13 +27,13 @@ export default function EmployeeList() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-title leading-tight font-semibold">Employee Skill Profile</h1>
+        <h1 className="text-title leading-tight font-semibold">{t('nav.employees')}</h1>
         <p className="mt-1 text-small text-haze">
           {session.role === 'Employee'
-            ? 'คุณเห็นเฉพาะโปรไฟล์ของตัวเอง ตามสิทธิ์ของบทบาท Employee'
+            ? t('employees.hint.self')
             : session.role === 'Manager'
-              ? `คุณเห็นเฉพาะคนในทีม ${session.managerDepartment}`
-              : 'เลือกพนักงานเพื่อดูรายละเอียด skill ทั้งหมด'}
+              ? t('employees.hint.team', { department: session.managerDepartment ?? '' })
+              : t('employees.hint.all')}
         </p>
       </div>
 
@@ -39,7 +42,7 @@ export default function EmployeeList() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ค้นหาชื่อ ตำแหน่ง หรือแผนก"
+          placeholder={t('employees.search')}
           className="w-full bg-transparent text-small outline-none placeholder:text-haze/70"
         />
       </label>
@@ -47,8 +50,8 @@ export default function EmployeeList() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={Users}
-          title={`ไม่พบใครที่ตรงกับ "${query}"`}
-          action="ลองพิมพ์ชื่อแผนก เช่น Marketing หรือ Data"
+          title={t('employees.empty.title', { query })}
+          action={t('employees.empty.action')}
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -60,7 +63,7 @@ export default function EmployeeList() {
                 <Card tone="flat" interactive className="h-full p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-body font-semibold">{employee.name}</p>
+                      <p className="truncate text-body font-semibold">{name(employee)}</p>
                       <p className="truncate text-small text-haze">{employee.title}</p>
                     </div>
                     <Badge tone="muted">{employee.department}</Badge>
@@ -69,7 +72,7 @@ export default function EmployeeList() {
                     className="mt-3 text-micro"
                     style={{ color: talent.qualified ? talentColor[talent.type] : undefined }}
                   >
-                    {talent.qualified ? talent.type : 'ยังไม่เข้าเกณฑ์การจัดกลุ่ม'}
+                    {talent.qualified ? talent.type : t('employees.unclassified')}
                   </p>
                   <div className="mt-3 flex items-baseline justify-between text-micro text-haze">
                     <span>Promotion Readiness</span>

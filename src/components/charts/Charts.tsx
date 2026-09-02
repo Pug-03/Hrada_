@@ -140,8 +140,12 @@ export function SkillHistoryLineChart({
 
 export function SkillRadarChart({
   data,
+  currentLabel = 'Current level',
+  targetLabel = 'Target role',
 }: {
   data: { skill: string; level: number; required?: number }[]
+  currentLabel?: string
+  targetLabel?: string
 }) {
   const reduced = useReducedMotion()
   const hasTarget = data.some((d) => d.required !== undefined)
@@ -158,7 +162,7 @@ export function SkillRadarChart({
         <ChartTooltip cursor={false} />
         {hasTarget ? (
           <Radar
-            name="Target role"
+            name={targetLabel}
             dataKey="required"
             stroke={colors.haze}
             strokeDasharray="4 3"
@@ -168,7 +172,7 @@ export function SkillRadarChart({
           />
         ) : null}
         <Radar
-          name="ระดับปัจจุบัน"
+          name={currentLabel}
           dataKey="level"
           stroke={colors.sky}
           fill={colors.sky}

@@ -1,3 +1,5 @@
+import { bi } from '@/lib/i18n/types'
+
 import type { Candidate } from './types'
 
 /**
@@ -15,7 +17,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-01',
     name: 'ณัฐพงษ์ ค.',
     nameLatin: 'Natthapong K.',
-    education: 'ปริญญาโท สถิติประยุกต์',
+    education: bi('ปริญญาโท สถิติประยุกต์', 'MSc Applied Statistics'),
     yearsExperience: 6,
     skills: [
       { skillId: 'data-analysis', level: 4.6 },
@@ -39,7 +41,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-02',
     name: 'วรรณิศา ด.',
     nameLatin: 'Wannisa D.',
-    education: 'ปริญญาตรี วิทยาการคอมพิวเตอร์',
+    education: bi('ปริญญาตรี วิทยาการคอมพิวเตอร์', 'BSc Computer Science'),
     yearsExperience: 3.5,
     skills: [
       { skillId: 'data-analysis', level: 4.0 },
@@ -61,7 +63,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-03',
     name: 'ปกรณ์ ศ.',
     nameLatin: 'Pakorn S.',
-    education: 'ปริญญาตรี คณิตศาสตร์ประยุกต์',
+    education: bi('ปริญญาตรี คณิตศาสตร์ประยุกต์', 'BSc Applied Mathematics'),
     yearsExperience: 1.5,
     skills: [
       { skillId: 'data-analysis', level: 3.6 },
@@ -84,7 +86,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-04',
     name: 'จิรายุ บ.',
     nameLatin: 'Jirayu B.',
-    education: 'ปริญญาตรี บริหารธุรกิจ',
+    education: bi('ปริญญาตรี บริหารธุรกิจ', 'BBA Business Administration'),
     yearsExperience: 1,
     skills: [
       { skillId: 'data-analysis', level: 2.4 },
@@ -102,7 +104,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-05',
     name: 'ธิดารัตน์ ห.',
     nameLatin: 'Thidarat H.',
-    education: 'ปริญญาตรี นิเทศศาสตร์',
+    education: bi('ปริญญาตรี นิเทศศาสตร์', 'BA Communication Arts'),
     yearsExperience: 5.5,
     skills: [
       { skillId: 'content-creation', level: 4.4 },
@@ -126,7 +128,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-06',
     name: 'สมชาย น.',
     nameLatin: 'Somchai N.',
-    education: 'ปริญญาตรี การตลาด',
+    education: bi('ปริญญาตรี การตลาด', 'BBA Marketing'),
     yearsExperience: 2,
     skills: [
       { skillId: 'content-creation', level: 2.6 },
@@ -147,7 +149,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-07',
     name: 'ชนากานต์ พ.',
     nameLatin: 'Chanakan P.',
-    education: 'ปริญญาตรี บริหารธุรกิจ',
+    education: bi('ปริญญาตรี บริหารธุรกิจ', 'BBA Business Administration'),
     yearsExperience: 3,
     skills: [
       { skillId: 'client-handling', level: 3.6 },
@@ -168,7 +170,7 @@ export const CANDIDATES: Candidate[] = [
     id: 'cand-08',
     name: 'ธีรภัทร อ.',
     nameLatin: 'Teerapat A.',
-    education: 'ปริญญาตรี รัฐศาสตร์',
+    education: bi('ปริญญาตรี รัฐศาสตร์', 'BA Political Science'),
     yearsExperience: 2,
     skills: [
       { skillId: 'client-handling', level: 3.0 },

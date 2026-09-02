@@ -1,21 +1,24 @@
 import type { Employee } from '@/data/types'
+import { useName, useT } from '@/lib/i18n'
 
 /** Shared scoped picker for the screens that operate on one person at a time. */
 export function EmployeePicker({
   employees,
   value,
   onChange,
-  label = 'เลือกพนักงาน',
+  label,
 }: {
   employees: Employee[]
   value: string
   onChange: (id: string) => void
   label?: string
 }) {
+  const t = useT()
+  const name = useName()
   if (employees.length <= 1) return null
   return (
     <label className="flex items-center gap-2 text-small">
-      <span className="text-haze">{label}</span>
+      <span className="text-haze">{label ?? t('employees.pick')}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -23,7 +26,7 @@ export function EmployeePicker({
       >
         {employees.map((employee) => (
           <option key={employee.id} value={employee.id} className="bg-panel">
-            {employee.name} · {employee.title}
+            {name(employee)} · {employee.title}
           </option>
         ))}
       </select>

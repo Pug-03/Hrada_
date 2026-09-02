@@ -3,10 +3,13 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { ORG } from '@/data/employees'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 import { navFor, type Session } from '@/lib/permissions'
 import { useSession } from '@/store/session'
 
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { RoleSwitcher } from './RoleSwitcher'
+import { NumericText } from './ui/NumericText'
 import { ToastHost } from './ui/Toast'
 
 export function Layout() {
@@ -14,6 +17,7 @@ export function Layout() {
   const nav = navFor(session)
   const location = useLocation()
   const reduced = useReducedMotion()
+  const t = useT()
 
   return (
     <div className="flex min-h-screen">
@@ -23,7 +27,7 @@ export function Layout() {
           <div className="px-2 pb-5">
             <p className="text-section font-semibold tracking-tight">HRADA</p>
             <p className="mt-0.5 text-micro text-haze">
-              {ORG.name} · <span className="num">{ORG.totalHeadcount}</span> คน
+              {ORG.name} · <NumericText>{t('app.headcount', { count: ORG.totalHeadcount })}</NumericText>
             </p>
           </div>
           <nav className="flex flex-col gap-0.5">
@@ -40,13 +44,11 @@ export function Layout() {
                   )
                 }
               >
-                {item.label}
+                {t(item.labelKey)}
               </NavLink>
             ))}
           </nav>
-          <p className="mt-auto px-3 text-micro leading-relaxed text-haze">
-            HRADA วิเคราะห์ เสนอแนะ และอธิบายเหตุผล — คนเป็นผู้ตัดสินใจเสมอ
-          </p>
+          <p className="mt-auto px-3 text-micro leading-relaxed text-haze">{t('app.principle')}</p>
         </aside>
       ) : null}
 
@@ -55,10 +57,11 @@ export function Layout() {
           <div className="flex items-center gap-3 lg:hidden">
             <span className="text-body font-semibold">HRADA</span>
           </div>
-          <div className="hidden text-small text-haze lg:block">
-            Put the Right Person in the Right Job and Grow the Right Skills
+          <div className="hidden text-small text-haze lg:block">{t('app.tagline')}</div>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <RoleSwitcher />
           </div>
-          <RoleSwitcher />
         </header>
 
         <motion.main

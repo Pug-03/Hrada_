@@ -6,7 +6,7 @@ import { useToast } from '@/store/toast'
 /**
  * §5 — confirmation slides in from the top right and dismisses itself. The
  * wording mirrors the button that caused it, so "Schedule Interview" produces
- * "นัดสัมภาษณ์แล้ว" rather than a generic success message.
+ * "Interview scheduled" rather than a generic success message.
  */
 export function ToastHost() {
   const toasts = useToast((s) => s.toasts)

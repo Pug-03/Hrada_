@@ -5,6 +5,8 @@
  * in src/lib/scoring.ts. No screen may hold a number of its own.
  */
 
+import type { LocalizedText } from '@/lib/i18n/types'
+
 export type Department = 'Marketing' | 'Sales' | 'Data' | 'Product' | 'Operations'
 
 export type SkillCategory =
@@ -52,7 +54,7 @@ export type EvidenceKind =
 export interface Evidence {
   kind: EvidenceKind
   /** Rendered after the kind, e.g. "Project: Q1 Rebrand". */
-  detail: string
+  detail: LocalizedText
   year: number
 }
 
@@ -134,21 +136,21 @@ export interface RoleDefinition {
   department: Department
   requiredSkills: SkillRequirement[]
   /** Why the role needs what it needs — shown in the explanation panel. */
-  rationale: string
+  rationale: LocalizedText
 }
 
 export interface Job {
   id: string
   title: string
   department: Department
-  description: string
-  responsibilities: string[]
+  description: LocalizedText
+  responsibilities: LocalizedText[]
   requiredSkills: SkillRequirement[]
   preferredSkills: SkillRequirement[]
   minExperience: number
-  education: string
+  education: LocalizedText
   employmentType: EmploymentType
-  location: string
+  location: LocalizedText
   salaryRange: { min: number; max: number; currency: 'THB' }
 }
 
@@ -166,7 +168,7 @@ export interface Candidate {
   id: string
   name: string
   nameLatin: string
-  education: string
+  education: LocalizedText
   yearsExperience: number
   skills: CandidateSkill[]
   certifications: string[]
@@ -181,7 +183,7 @@ export interface Candidate {
 export interface ProjectSpec {
   id: string
   name: string
-  description: string
+  description: LocalizedText
   requiredSkills: SkillRequirement[]
   teamSize: number
   durationMonths: number

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AnalysisLoader } from '@/components/ui/AnalysisLoader'
-import { useAnalysis } from '@/hooks/useAnalysis'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -15,6 +14,8 @@ import { SlidePanel } from '@/components/ui/SlidePanel'
 import { EMPLOYEES } from '@/data/employees'
 import { getProject, PROJECTS } from '@/data/projects'
 import { skillName } from '@/data/skills'
+import { useAnalysis } from '@/hooks/useAnalysis'
+import { useI18n, useMessage, useName, useNameResolver, useText } from '@/lib/i18n'
 import { canViewEmployee, type Session } from '@/lib/permissions'
 import { requirementCovered, selectTeam, type TeamMember } from '@/lib/scoring'
 import { motion as motionTokens, talentColor } from '@/lib/theme'
@@ -32,6 +33,11 @@ import { useSession } from '@/store/session'
 export default function TeamMatching() {
   const session = useSession() as unknown as Session
   const reduced = useReducedMotion()
+  const { t } = useI18n()
+  const name = useName()
+  const text = useText()
+  const nameOf = useNameResolver()
+  const renderMsg = useMessage()
   const [projectId, setProjectId] = useState(PROJECTS[0].id)
   const project = getProject(projectId)
   const [teamSize, setTeamSize] = useState(project.teamSize)
@@ -54,10 +60,8 @@ export default function TeamMatching() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-title leading-tight font-semibold">AI Team Matching</h1>
-        <p className="mt-1 text-small text-haze">
-          จัดทีมด้วยวิธี greedy coverage — เลือกคนที่ปิด skill ที่ยังขาดได้มากที่สุดก่อน ไม่ใช่เรียงจากคะแนนสูงสุด
-        </p>
+        <h1 className="text-title leading-tight font-semibold">{t('nav.teamMatching')}</h1>
+        <p className="mt-1 text-small text-haze">{t('team.hint')}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -73,8 +77,9 @@ export default function TeamMatching() {
           >
             <span className="block">{option.name}</span>
             <span className="block text-micro text-haze">
-              ต้องการ <span className="num">{option.teamSize}</span> คน ·{' '}
-              <span className="num">{option.durationMonths}</span> เดือน
+              <NumericText>
+                {t('team.projectMeta', { size: option.teamSize, months: option.durationMonths })}
+              </NumericText>
             </span>
           </button>
         ))}
@@ -82,9 +87,9 @@ export default function TeamMatching() {
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card tone="flat" className="lg:col-span-2">
-          <CardHeader title={project.name} hint={project.description} />
+          <CardHeader title={project.name} hint={text(project.description)} />
           <div className="px-5 pb-4">
-            <p className="text-micro text-haze">Required skills</p>
+            <p className="text-micro text-haze">{t('team.requiredSkills')}</p>
             <ul className="mt-1.5 space-y-1 text-small">
               {project.requiredSkills.map((req) => {
                 const covered = requirementCovered(team.members, req.skillId, req.level)
@@ -93,7 +98,9 @@ export default function TeamMatching() {
                     <span>{skillName(req.skillId)}</span>
                     <span className="flex items-center gap-2">
                       <span className="num text-haze">{req.level.toFixed(1)}</span>
-                      <Badge tone={covered ? 'sky' : 'warn'}>{covered ? 'มีคนรับผิดชอบ' : 'ยังขาด'}</Badge>
+                      <Badge tone={covered ? 'sky' : 'warn'}>
+                        {covered ? t('team.covered') : t('team.notCovered')}
+                      </Badge>
                     </span>
                   </li>
                 )
@@ -102,11 +109,11 @@ export default function TeamMatching() {
 
             <div className="mt-5 border-t border-line/70 pt-4">
               <div className="flex items-center justify-between">
-                <span className="text-small">ขนาดทีม</span>
+                <span className="text-small">{t('team.size')}</span>
                 <span className="flex items-center gap-2">
                   <Button
                     variant="secondary"
-                    aria-label="ลดขนาดทีม"
+                    aria-label={t('team.sizeDown')}
                     onClick={() => setTeamSize((n) => Math.max(2, n - 1))}
                     disabled={teamSize <= 2}
                     className="px-2 py-1"
@@ -116,7 +123,7 @@ export default function TeamMatching() {
                   <Num value={teamSize} className="w-6 text-center text-section text-sky" />
                   <Button
                     variant="secondary"
-                    aria-label="เพิ่มขนาดทีม"
+                    aria-label={t('team.sizeUp')}
                     onClick={() => setTeamSize((n) => Math.min(6, n + 1))}
                     disabled={teamSize >= 6}
                     className="px-2 py-1"
@@ -126,21 +133,18 @@ export default function TeamMatching() {
                 </span>
               </div>
               <p className="mt-2 text-micro leading-relaxed text-haze">
-                <NumericText>
-                  เปลี่ยนขนาดทีมแล้วระบบคำนวณใหม่ทันที — ทีมตั้งแต่ 4 คนขึ้นไปต้องมี Developing Talent อย่างน้อย 1 คน
-                  เพื่อให้โครงการสร้างคนไปด้วย
-                </NumericText>
+                <NumericText>{t('team.sizeNote')}</NumericText>
               </p>
             </div>
 
             <div className="mt-5 border-t border-line/70 pt-4">
-              <p className="text-micro text-haze">ขั้นตอนที่ระบบใช้เลือก</p>
+              <p className="text-micro text-haze">{t('team.steps')}</p>
               <ol className="mt-1.5 space-y-1.5 text-micro leading-relaxed text-haze">
                 {team.steps.map((step, i) => (
                   <li key={i} className="flex gap-2">
                     <span className="num shrink-0 text-sky">{i + 1}</span>
                     <span>
-                      <NumericText>{step}</NumericText>
+                      <NumericText>{renderMsg(step)}</NumericText>
                     </span>
                   </li>
                 ))}
@@ -152,7 +156,10 @@ export default function TeamMatching() {
         <div className="space-y-3 lg:col-span-3">
           {running ? (
             <AnalysisLoader
-              message={`กำลังวิเคราะห์ Skill Graph ของพนักงาน ${EMPLOYEES.length} คน เทียบกับ ${project.requiredSkills.length} required skills`}
+              message={t('team.analysing', {
+                count: EMPLOYEES.length,
+                skills: project.requiredSkills.length,
+              })}
               rows={teamSize}
             />
           ) : (
@@ -160,7 +167,7 @@ export default function TeamMatching() {
               {team.developingTalentSwap ? (
                 <Card tone="quiet" className="border-sky/30 px-4 py-3">
                   <p className="text-micro leading-relaxed text-sky">
-                    <NumericText>{team.developingTalentSwap.reason}</NumericText>
+                    <NumericText>{renderMsg(team.developingTalentSwap.reason)}</NumericText>
                   </p>
                 </Card>
               ) : null}
@@ -182,10 +189,10 @@ export default function TeamMatching() {
                             <p className="text-body font-semibold">
                               {canViewEmployee(session, member.employee.id) ? (
                                 <Link to={`/employees/${member.employee.id}`} className="hover:text-sky">
-                                  {member.employee.name}
+                                  {name(member.employee)}
                                 </Link>
                               ) : (
-                                member.employee.name
+                                name(member.employee)
                               )}
                             </p>
                             <p className="mt-0.5 text-micro text-haze">
@@ -200,7 +207,7 @@ export default function TeamMatching() {
                               // and it is meaning, not decoration.
                             >
                               <span style={{ color: member.talent.qualified ? talentColor[member.talent.type] : undefined }}>
-                                {member.talent.qualified ? member.talent.type : 'ยังไม่จัดกลุ่ม'}
+                                {member.talent.qualified ? member.talent.type : t('team.unclassified')}
                               </span>
                             </Badge>
                             <div className="text-right">
@@ -211,7 +218,7 @@ export default function TeamMatching() {
                         </div>
 
                         <p className="mt-3 text-micro leading-relaxed text-haze">
-                          <NumericText>{member.reason}</NumericText>
+                          <NumericText>{renderMsg(member.reason)}</NumericText>
                         </p>
 
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -221,7 +228,7 @@ export default function TeamMatching() {
                             </Badge>
                           ))}
                           <Badge tone={member.employee.workload > 85 ? 'warn' : 'muted'}>
-                            Workload <span className="num">{member.employee.workload}%</span>
+                            {t('tracking.col.workload')} <span className="num">{member.employee.workload}%</span>
                           </Badge>
                         </div>
 
@@ -229,13 +236,16 @@ export default function TeamMatching() {
                           <div className="mt-3 flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
                             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warn" />
                             <p className="text-micro leading-relaxed text-warn">
-                              Workload Risk — {member.employee.name} รับงานอยู่{' '}
-                              <span className="num">{member.employee.workload}%</span> แล้ว
-                              {member.backupName ? (
-                                <>
-                                  {' '}
-                                  ถ้าต้องกระจายงาน คนที่เหมาะรับแทนคือ {member.backupName}
-                                </>
+                              <NumericText>
+                                {t('team.workloadRisk', {
+                                  name: name(member.employee),
+                                  workload: member.employee.workload,
+                                })}
+                              </NumericText>
+                              {member.backupId ? (
+                                <NumericText>
+                                  {t('team.workloadBackup', { name: nameOf(member.backupId) })}
+                                </NumericText>
                               ) : null}
                             </p>
                           </div>
@@ -243,7 +253,7 @@ export default function TeamMatching() {
 
                         <div className="mt-3">
                           <Button variant="ghost" onClick={() => setExplaining(member)}>
-                            ทำไมถึงเลือกคนนี้?
+                            {t('team.why')}
                           </Button>
                         </div>
                       </Card>
@@ -257,25 +267,27 @@ export default function TeamMatching() {
                   <div className="flex items-start gap-2">
                     <Users size={15} className="mt-0.5 shrink-0 text-warn" />
                     <div>
-                      <p className="text-small text-warn">ทีมนี้ยังปิดไม่ครบ</p>
+                      <p className="text-small text-warn">{t('team.gapsTitle')}</p>
                       <ul className="mt-1.5 space-y-1 text-micro text-haze">
                         {team.teamGaps.map((gap) => (
                           <li key={gap.skillId}>
-                            {gap.skillName}: คนที่เก่งที่สุดในทีมอยู่ที่{' '}
-                            <span className="num">{gap.current.toFixed(1)}</span> โครงการต้องการ{' '}
-                            <span className="num">{gap.required.toFixed(1)}</span>
+                            <NumericText>
+                              {t('team.gapItem', {
+                                skill: gap.skillName,
+                                current: gap.current.toFixed(1),
+                                required: gap.required.toFixed(1),
+                              })}
+                            </NumericText>
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-2 text-micro leading-relaxed text-haze">
-                        เลือกได้สองทาง — พัฒนาคนในทีมผ่าน Learning Path หรือเปิดรับคนใหม่
-                      </p>
+                      <p className="mt-2 text-micro leading-relaxed text-haze">{t('team.gapsChoice')}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Link to="/recruit">
-                          <Button variant="primary">เปิดรับตำแหน่งสำหรับ skill ที่ขาด</Button>
+                          <Button variant="primary">{t('team.openRole')}</Button>
                         </Link>
                         <Link to="/learning">
-                          <Button variant="secondary">ดู Learning Path ของคนในทีม</Button>
+                          <Button variant="secondary">{t('team.viewLearning')}</Button>
                         </Link>
                       </div>
                     </div>
@@ -283,9 +295,7 @@ export default function TeamMatching() {
                 </Card>
               ) : (
                 <Card tone="quiet" className="px-4 py-3">
-                  <p className="text-micro text-sky">
-                    ทีมนี้ครอบคลุม required skills ครบทุกข้อจากคนที่มีอยู่แล้ว ไม่ต้องเปิดรับเพิ่ม
-                  </p>
+                  <p className="text-micro text-sky">{t('team.complete')}</p>
                 </Card>
               )}
             </>
@@ -296,27 +306,25 @@ export default function TeamMatching() {
       <SlidePanel
         open={explaining !== null}
         onClose={() => setExplaining(null)}
-        title="ทำไมถึงเลือกคนนี้?"
-        subtitle={explaining ? `${explaining.employee.name} → ${project.name}` : undefined}
+        title={t('team.why')}
+        subtitle={explaining ? `${name(explaining.employee)} → ${project.name}` : undefined}
       >
         {explaining ? (
           <>
             <ScoreBreakdown components={explaining.fit.components} total={explaining.fit.total} totalLabel="Team Fit" />
             <div className="mt-5 rounded-lg border border-line bg-panel-raised/60 p-3.5">
-              <p className="text-micro text-haze">เหตุผลที่ถูกเลือกในลำดับนี้</p>
+              <p className="text-micro text-haze">{t('team.panel.order')}</p>
               <p className="mt-1 text-small leading-relaxed">
-                <NumericText>{explaining.reason}</NumericText>
+                <NumericText>{renderMsg(explaining.reason)}</NumericText>
               </p>
             </div>
             <div className="mt-4 rounded-lg border border-line bg-panel-raised/60 p-3.5">
-              <p className="text-micro text-haze">Talent Classification</p>
+              <p className="text-micro text-haze">{t('team.panel.talent')}</p>
               <p className="mt-1 text-small leading-relaxed">
-                <NumericText>{explaining.talent.reason}</NumericText>
+                <NumericText>{renderMsg(explaining.talent.reason)}</NumericText>
               </p>
             </div>
-            <p className="mt-5 text-micro leading-relaxed text-haze">
-              รายชื่อนี้เป็นข้อเสนอ ไม่ใช่การมอบหมายงาน — หัวหน้าโครงการเป็นผู้ตัดสินใจว่าจะจัดทีมแบบใด
-            </p>
+            <p className="mt-5 text-micro leading-relaxed text-haze">{t('team.panel.caveat')}</p>
           </>
         ) : null}
       </SlidePanel>

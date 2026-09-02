@@ -42,45 +42,23 @@ export function skillCategory(id: SkillId): SkillCategory {
  * §7 — the level scale. Bands are inclusive of `min`, and of `max` at the top
  * of each band, so 3.0 is Practicing and 3.1 is Proficient.
  */
+/**
+ * The meaning of each band lives in the dictionaries as `band.<name>`, not
+ * here — it is copy shown to the user, and this module is data.
+ */
 export interface SkillBand {
   min: number
   max: number
-  name: string
-  meaning: string
+  name: 'None' | 'Aware' | 'Practicing' | 'Proficient' | 'Advanced' | 'Expert'
 }
 
 export const SKILL_BANDS: SkillBand[] = [
-  { min: 0, max: 1.0, name: 'None', meaning: 'ไม่มีประสบการณ์กับ skill นี้' },
-  {
-    min: 1.1,
-    max: 2.0,
-    name: 'Aware',
-    meaning: 'เข้าใจแนวคิด แต่ต้องมีคนแนะนำจึงจะลงมือทำได้',
-  },
-  {
-    min: 2.1,
-    max: 3.0,
-    name: 'Practicing',
-    meaning: 'ทำงานประจำได้เองแล้ว แต่ยังต้องมีคนตรวจทาน',
-  },
-  {
-    min: 3.1,
-    max: 4.0,
-    name: 'Proficient',
-    meaning: 'ทำงานได้เองเต็มตัว แก้ปัญหาที่ไม่เคยเจอมาก่อนได้',
-  },
-  {
-    min: 4.1,
-    max: 4.7,
-    name: 'Advanced',
-    meaning: 'สอนงานคนอื่นได้ ออกแบบวิธีทำงานใหม่ได้',
-  },
-  {
-    min: 4.8,
-    max: 5.0,
-    name: 'Expert',
-    meaning: 'เป็นมาตรฐานขององค์กร และถ่ายทอดให้คนอื่นได้',
-  },
+  { min: 0, max: 1.0, name: 'None' },
+  { min: 1.1, max: 2.0, name: 'Aware' },
+  { min: 2.1, max: 3.0, name: 'Practicing' },
+  { min: 3.1, max: 4.0, name: 'Proficient' },
+  { min: 4.1, max: 4.7, name: 'Advanced' },
+  { min: 4.8, max: 5.0, name: 'Expert' },
 ]
 
 export function bandFor(level: number): SkillBand {

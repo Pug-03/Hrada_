@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
+import { translate } from '@/lib/i18n'
+import { renderInsight } from '@/lib/i18n/insights'
+
 import { CANDIDATES } from '@/data/candidates'
 import { EMPLOYEES, getEmployee } from '@/data/employees'
 import { getJob, JOBS } from '@/data/jobs'
@@ -224,12 +227,12 @@ describe('selectTeam (§10.4)', () => {
     const team = selectTeam(getProject('proj-product-analytics'))
     const atRisk = team.members.find((m) => m.workloadRisk)
     expect(atRisk?.employee.id).toBe('emp-02')
-    expect(atRisk?.backupName).toBeTruthy()
+    expect(atRisk?.backupId).toBeTruthy()
   })
 
   it('explains every pick', () => {
     const team = selectTeam(getProject('proj-customer-retention'))
-    for (const member of team.members) expect(member.reason.length).toBeGreaterThan(10)
+    for (const member of team.members) expect(member.reason.id.length).toBeGreaterThan(0)
     expect(team.steps.length).toBeGreaterThan(1)
   })
 })
@@ -266,7 +269,7 @@ describe('classifyTalent (§10.5)', () => {
 
   it('always returns a reason', () => {
     for (const employee of EMPLOYEES) {
-      expect(classifyTalent(employee).reason.length).toBeGreaterThan(10)
+      expect(classifyTalent(employee).reason.id.length).toBeGreaterThan(0)
     }
   })
 
@@ -397,17 +400,28 @@ describe('generateInsights (§10.10)', () => {
 
   it('produces all four insight kinds', () => {
     const kinds = new Set(insights().map((i) => i.kind))
-    expect(kinds).toContain('Critical Skill Gap')
-    expect(kinds).toContain('At-Risk Skill')
-    expect(kinds).toContain('Workload Risk')
-    expect(kinds).toContain('Growth Opportunity')
+    expect(kinds).toContain('critical-skill-gap')
+    expect(kinds).toContain('at-risk-skill')
+    expect(kinds).toContain('workload-risk')
+    expect(kinds).toContain('growth-opportunity')
   })
 
-  it('cites what every insight was computed from', () => {
+  it('cites what every insight links to', () => {
     for (const insight of insights()) {
-      expect(insight.computedFrom.length).toBeGreaterThan(10)
-      expect(insight.formula.length).toBeGreaterThan(10)
-      expect(insight.action.to.startsWith('/')).toBe(true)
+      expect(insight.to.startsWith('/')).toBe(true)
+      expect(insight.payload.kind).toBe(insight.kind)
+    }
+  })
+
+  it('renders a title, computed-from line and formula in both locales', () => {
+    for (const insight of insights()) {
+      for (const locale of ['th', 'en'] as const) {
+        const rendered = renderInsight(insight, (key, params) => translate(locale, key, params), locale)
+        expect(rendered.title.length).toBeGreaterThan(5)
+        expect(rendered.computedFrom.length).toBeGreaterThan(5)
+        expect(rendered.formula.length).toBeGreaterThan(5)
+        expect(rendered.actionLabel.length).toBeGreaterThan(0)
+      }
     }
   })
 
@@ -458,7 +472,9 @@ describe('additional tracking KPIs (§10.11)', () => {
     const result = calcManagerSatisfaction(piya())
     expect(result.score).toBeCloseTo(0.92, 2)
     expect(result.reviewCount).toBeGreaterThan(0)
-    expect(result.basis).toContain('Manager Satisfaction')
+    expect(result.basis.id).toBe('manager.satisfaction.basis')
+    const rendered = translate('en', result.basis.id, result.basis.params)
+    expect(rendered).toContain('Manager Satisfaction')
   })
 })
 
@@ -509,7 +525,8 @@ describe('roles', () => {
         expect(req.level).toBeGreaterThan(0)
         expect(req.level).toBeLessThanOrEqual(5)
       }
-      expect(role.rationale.length).toBeGreaterThan(10)
+      expect(role.rationale.th.length).toBeGreaterThan(10)
+      expect(role.rationale.en.length).toBeGreaterThan(10)
     }
   })
 
@@ -530,7 +547,7 @@ describe('ownership bar', () => {
 describe('at-risk insight completeness', () => {
   it('emits an insight for every at-risk skill, not a trimmed list', () => {
     const health = calcWorkforceHealth()
-    const atRiskInsights = generateInsights().filter((i) => i.kind === 'At-Risk Skill')
+    const atRiskInsights = generateInsights().filter((i) => i.kind === 'at-risk-skill')
     expect(atRiskInsights).toHaveLength(health.atRiskSkills.length)
   })
 

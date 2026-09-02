@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 
+import { useT } from '@/lib/i18n'
 import { motion as motionTokens } from '@/lib/theme'
 
 /**
@@ -23,6 +24,7 @@ export function SlidePanel({
   children: ReactNode
 }) {
   const reduced = useReducedMotion()
+  const t = useT()
 
   useEffect(() => {
     if (!open) return
@@ -61,7 +63,7 @@ export function SlidePanel({
               </div>
               <button
                 onClick={onClose}
-                aria-label="ปิดแผงคำอธิบาย"
+                aria-label={t('common.closePanel')}
                 className="rounded-md p-1.5 text-haze transition-colors hover:bg-panel-raised hover:text-text"
               >
                 <X size={16} />

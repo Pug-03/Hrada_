@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 
 import { bandFor } from '@/data/skills'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 
 /**
  * A skill level as a bar. §5 — the fill animates on first mount only, so
@@ -22,6 +23,7 @@ export function LevelBar({
   animateOnMount?: boolean
 }) {
   const reduced = useReducedMotion()
+  const t = useT()
   const pct = Math.min(100, (level / max) * 100)
   const meets = required === undefined || level >= required
   return (
@@ -31,7 +33,7 @@ export function LevelBar({
         initial={animateOnMount && !reduced ? { width: 0 } : false}
         animate={{ width: `${pct}%` }}
         transition={{ duration: reduced ? 0 : 0.6, ease: [0.16, 1, 0.3, 1] }}
-        aria-label={`${level.toFixed(1)} จาก ${max} — ${bandFor(level).name}`}
+        aria-label={t('scale.barLabel', { level: level.toFixed(1), max, band: bandFor(level).name })}
       />
       {required !== undefined ? (
         <span

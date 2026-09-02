@@ -1,9 +1,12 @@
 import { ShieldAlert } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
+import type { DeniedState } from '@/components/DeniedState'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { homeFor, type Session } from '@/lib/permissions'
+import { NumericText } from '@/components/ui/NumericText'
+import { useT } from '@/lib/i18n'
+import { denialReason, homeFor, type Session } from '@/lib/permissions'
 import { useSession } from '@/store/session'
 
 /**
@@ -14,8 +17,13 @@ import { useSession } from '@/store/session'
 export default function NotAuthorized() {
   const session = useSession() as unknown as Session
   const location = useLocation()
-  const reason = (location.state as { reason?: string } | null)?.reason
-  const attempted = (location.state as { attempted?: string } | null)?.attempted
+  const t = useT()
+  const state = location.state as DeniedState | null
+
+  const reason = state?.screen
+    ? denialReason(session, state.screen, t)
+    : t('denied.generic')
+  const message = state?.suffixKey ? `${reason} — ${t(state.suffixKey)}` : reason
 
   return (
     <div className="mx-auto max-w-lg py-16">
@@ -23,25 +31,20 @@ export default function NotAuthorized() {
         <span className="mx-auto grid size-11 place-items-center rounded-full bg-warn/10 text-warn">
           <ShieldAlert size={18} />
         </span>
-        <h1 className="mt-4 text-title font-semibold">เข้าหน้านี้ไม่ได้</h1>
-        <p className="mt-2 text-body leading-relaxed text-haze">
-          {reason ?? 'บทบาทปัจจุบันของคุณไม่มีสิทธิ์เข้าถึงหน้านี้'}
-        </p>
-        {attempted ? (
+        <h1 className="mt-4 text-title font-semibold">{t('denied.title')}</h1>
+        <p className="mt-2 text-body leading-relaxed text-haze">{message}</p>
+        {state?.attempted ? (
           <p className="mt-2 text-micro text-haze">
-            หน้าที่พยายามเข้า: <span className="num">{attempted}</span>
+            <NumericText>{t('denied.attempted', { path: state.attempted })}</NumericText>
           </p>
         ) : null}
-        <p className="mt-4 text-small leading-relaxed text-haze">
-          สิทธิ์การเข้าถึงกำหนดตามบทบาท เพื่อให้ข้อมูลผลงานและค่าตอบแทนของแต่ละคนถูกเห็นเฉพาะคนที่ต้องใช้จริง
-          หากต้องการดูหน้านี้ ให้สลับบทบาทจากมุมขวาบน
-        </p>
+        <p className="mt-4 text-small leading-relaxed text-haze">{t('denied.explain')}</p>
         <div className="mt-6 flex justify-center gap-2">
           <Link to={homeFor(session)}>
-            <Button variant="primary">กลับไปหน้าหลักของบทบาทนี้</Button>
+            <Button variant="primary">{t('denied.home')}</Button>
           </Link>
           <Link to="/">
-            <Button variant="secondary">เลือกบทบาทใหม่</Button>
+            <Button variant="secondary">{t('denied.pick')}</Button>
           </Link>
         </div>
       </Card>

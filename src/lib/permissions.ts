@@ -7,6 +7,7 @@
  */
 import { EMPLOYEES } from '@/data/employees'
 import type { Department, Employee, UserRole } from '@/data/types'
+import type { TFunction, TranslationKey } from '@/lib/i18n'
 
 export interface Session {
   role: UserRole | null
@@ -44,11 +45,16 @@ export function canOpen(session: Session, screen: Screen): boolean {
   return SCREEN_ACCESS[screen].includes(session.role)
 }
 
-/** Why a screen was refused — shown on the not-authorized page. */
-export function denialReason(session: Session, screen: Screen): string {
+/**
+ * Why a screen was refused — shown on the not-authorized page.
+ *
+ * Takes `t` rather than a locale so it works the same whether the caller is a
+ * component (via useT()) or a route guard reading the store directly.
+ */
+export function denialReason(session: Session, screen: Screen, t: TFunction): string {
   const allowed = SCREEN_ACCESS[screen].join(' / ')
-  if (!session.role) return 'ยังไม่ได้เลือกบทบาท กรุณาเลือกบทบาทก่อนเข้าใช้งาน'
-  return `หน้านี้เปิดให้เฉพาะบทบาท ${allowed} — บทบาทปัจจุบันของคุณคือ ${session.role}`
+  if (!session.role) return t('denial.noRole')
+  return t('denial.wrongRole', { allowed, role: session.role })
 }
 
 /** The set of people this session is allowed to look at at all (§8). */
@@ -96,17 +102,18 @@ export function insightScope(session: Session): 'org' | 'team' | 'none' {
 export interface NavItem {
   screen: Screen
   to: string
-  label: string
+  labelKey: TranslationKey
 }
 
+/** Screen names are product/HR terminology (§6) — identical text in both dictionaries. */
 const NAV: NavItem[] = [
-  { screen: 'dashboard', to: '/dashboard', label: 'Workforce Dashboard' },
-  { screen: 'employees', to: '/employees', label: 'Employee Skill Profile' },
-  { screen: 'recruit', to: '/recruit', label: 'AI Recruit' },
-  { screen: 'team-matching', to: '/team-matching', label: 'AI Team Matching' },
-  { screen: 'learning', to: '/learning', label: 'Personalized Learning' },
-  { screen: 'tracking', to: '/tracking', label: 'Tracking' },
-  { screen: 'insights', to: '/insights', label: 'AI Workforce Insights' },
+  { screen: 'dashboard', to: '/dashboard', labelKey: 'nav.dashboard' },
+  { screen: 'employees', to: '/employees', labelKey: 'nav.employees' },
+  { screen: 'recruit', to: '/recruit', labelKey: 'nav.recruit' },
+  { screen: 'team-matching', to: '/team-matching', labelKey: 'nav.teamMatching' },
+  { screen: 'learning', to: '/learning', labelKey: 'nav.learning' },
+  { screen: 'tracking', to: '/tracking', labelKey: 'nav.tracking' },
+  { screen: 'insights', to: '/insights', labelKey: 'nav.insights' },
 ]
 
 export function navFor(session: Session): NavItem[] {

@@ -10,6 +10,7 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import { HISTORY_MONTHS } from '@/data/employees'
 import { skillName } from '@/data/skills'
 import type { Employee, SkillId } from '@/data/types'
+import { useI18n, useMessage, useName, useText, type TFunction } from '@/lib/i18n'
 import { canViewPerformance, visibleEmployees, type Session } from '@/lib/permissions'
 import {
   avgMonthlyGrowth,
@@ -39,21 +40,20 @@ type Mode = 'individual' | 'team'
  */
 export default function Tracking() {
   const session = useSession() as unknown as Session
+  const { t } = useI18n()
   const employees = useMemo(() => visibleEmployees(session), [session])
   const [mode, setMode] = useState<Mode>(employees.length > 1 ? 'team' : 'individual')
   const [selectedId, setSelectedId] = useState(employees[0]?.id ?? '')
   const employee = employees.find((e) => e.id === selectedId) ?? employees[0]
 
-  if (!employee) return <p className="text-small text-haze">ไม่มีข้อมูลในขอบเขตของบทบาทนี้</p>
+  if (!employee) return <p className="text-small text-haze">{t('tracking.noData')}</p>
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-title leading-tight font-semibold">Tracking</h1>
-          <p className="mt-1 text-small text-haze">
-            ติดตามการเติบโตของ skill ผลของการเรียน ผลงาน และเส้นทางอาชีพ
-          </p>
+          <h1 className="text-title leading-tight font-semibold">{t('nav.tracking')}</h1>
+          <p className="mt-1 text-small text-haze">{t('tracking.hint')}</p>
         </div>
         <div className="flex items-center gap-2">
           {employees.length > 1 ? (
@@ -66,7 +66,7 @@ export default function Tracking() {
                     mode === option ? 'bg-signal/20 text-text' : 'text-haze hover:text-text'
                   }`}
                 >
-                  {option === 'individual' ? 'รายบุคคล' : 'ทั้งทีม'}
+                  {option === 'individual' ? t('tracking.individual') : t('tracking.team')}
                 </button>
               ))}
             </div>
@@ -87,6 +87,10 @@ export default function Tracking() {
 }
 
 function IndividualTracking({ employee, session }: { employee: Employee; session: Session }) {
+  const { t } = useI18n()
+  const name = useName()
+  const text = useText()
+  const renderMsg = useMessage()
   const completedByEmployee = useLearning((s) => s.completed)
   const startedByEmployee = useLearning((s) => s.started)
 
@@ -124,12 +128,11 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
     <>
       <Card tone="flat">
         <CardHeader
-          title="Skill Growth"
+          title={t('tracking.growthTitle')}
           hint={
-            <>
-              {employee.name} · <span className="num">6</span> เดือนล่าสุด · เติบโตเฉลี่ย{' '}
-              <span className="num">+{growth.toFixed(2)}</span> ระดับต่อเดือน
-            </>
+            <NumericText>
+              {t('tracking.growthHint', { name: name(employee), rate: `+${growth.toFixed(2)}` })}
+            </NumericText>
           }
         />
         <div className="px-3 pb-4">
@@ -145,57 +148,67 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
       </Card>
 
       <Card tone="flat">
-        <CardHeader title="Learning Impact" hint="ตัวชี้วัดผลของการพัฒนา ตามชุด KPI ของ HRADA" />
+        <CardHeader title={t('tracking.impactTitle')} hint={t('tracking.impactHint')} />
         <div className="grid gap-3 px-5 pb-4 sm:grid-cols-2 xl:grid-cols-4">
           <Kpi
-            label="Skill Completion Rate"
+            label={t('learning.completionRate')}
             value={completion.rate * 100}
             suffix="%"
-            note={`ทำเสร็จ ${completion.completed} จาก ${completion.assigned} ขั้นใน Learning Path`}
+            note={t('tracking.completionNote', {
+              completed: completion.completed,
+              assigned: completion.assigned,
+            })}
           />
           <Kpi
-            label="Employee Engagement in Development Plan"
+            label={t('tracking.engagement')}
             value={engagement.rate * 100}
             suffix="%"
-            note={`เริ่มแล้ว ${engagement.started} จาก ${engagement.assigned} ขั้น — นับ "เริ่ม" ไม่ใช่ "จบ"`}
+            note={t('tracking.engagementNote', {
+              started: engagement.started,
+              assigned: engagement.assigned,
+            })}
           />
           <div className="rounded-lg border border-line bg-panel-raised/50 px-3.5 py-3">
-            <p className="text-micro text-haze">Time to Competency</p>
+            <p className="text-micro text-haze">{t('tracking.timeToCompetency')}</p>
             {timeToCompetency.averageMonths === null ? (
               <>
-                <p className="mt-1 text-section text-haze">ยังวัดไม่ได้</p>
+                <p className="mt-1 text-section text-haze">{t('tracking.notMeasurable')}</p>
                 <p className="mt-1 text-micro leading-relaxed text-haze">
-                  ยังไม่มี skill ไหนที่ประวัติ 6 เดือนวิ่งข้ามเกณฑ์ของตำแหน่งเป้าหมาย จึงยังไม่มีระยะเวลาให้วัด
+                  {t('tracking.notMeasurableNote')}
                 </p>
               </>
             ) : (
               <>
-                <Num value={timeToCompetency.averageMonths} decimals={1} suffix=" เดือน" className="mt-1 text-section text-sky" />
+                <Num
+                  value={timeToCompetency.averageMonths}
+                  decimals={1}
+                  suffix={` ${t('common.monthsUnit')}`}
+                  className="mt-1 text-section text-sky"
+                />
                 <p className="mt-1 text-micro leading-relaxed text-haze">
                   {timeToCompetency.perSkill
-                    .map((r) => `${r.skillName} ${r.months} เดือน`)
+                    .map((r) => t('tracking.perSkillMonths', { skill: r.skillName, months: r.months }))
                     .join(' · ')}
                 </p>
               </>
             )}
           </div>
-          <Tooltip content={<NumericText>{satisfaction.basis}</NumericText>}>
+          <Tooltip content={<NumericText>{renderMsg(satisfaction.basis)}</NumericText>}>
             <div className="w-full rounded-lg border border-line bg-panel-raised/50 px-3.5 py-3 text-left">
-              <p className="text-micro text-haze">Manager Satisfaction</p>
+              <p className="text-micro text-haze">{t('tracking.managerSatisfaction')}</p>
               <Num value={satisfaction.score * 100} suffix="%" className="mt-1 text-section text-sky" />
               <p className="mt-1 text-micro leading-relaxed text-haze">
-                ใช้ผลงานและ Manager Review <span className="num">{satisfaction.reviewCount}</span> รายการ
-                เป็นตัวแทน — ยังไม่ใช่แบบสำรวจจริง
+                <NumericText>{renderMsg(satisfaction.basis)}</NumericText>
               </p>
             </div>
           </Tooltip>
         </div>
 
         <div className="border-t border-line/70 px-5 py-4">
-          <p className="text-micro text-haze">Performance Improvement After Learning</p>
+          <p className="text-micro text-haze">{t('tracking.improvement')}</p>
           <ul className="mt-2 space-y-1.5 text-small">
             {outcomes.length === 0 ? (
-              <li className="text-haze">ยังไม่มีประวัติการเรียน</li>
+              <li className="text-haze">{t('learning.noHistory')}</li>
             ) : (
               outcomes.map(({ record, outcome }) => (
                 <li key={record.title} className="flex flex-wrap items-baseline justify-between gap-2">
@@ -207,7 +220,8 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
                       {outcome.before.toFixed(2)} → {outcome.after.toFixed(2)}
                     </span>
                     <Badge tone={outcome.lowOutcomeFlag ? 'warn' : 'sky'}>
-                      {outcome.lowOutcomeFlag ? 'ยังไม่เห็นผล' : 'เห็นผล'} {outcome.delta >= 0 ? '+' : ''}
+                      {outcome.lowOutcomeFlag ? t('tracking.notLanded') : t('tracking.landed')}{' '}
+                      {outcome.delta >= 0 ? '+' : ''}
                       <span className="num">{outcome.delta.toFixed(2)}</span>
                     </Badge>
                   </span>
@@ -220,73 +234,75 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card tone="flat">
-          <CardHeader title="Performance" hint="ผลงาน หลักฐาน และเสียงจากคนรอบตัว" />
+          <CardHeader title="Performance" hint={t('tracking.performanceHint')} />
           <div className="space-y-4 px-5 pb-4">
             {canViewPerformance(session, employee.id) ? (
               <div className="flex items-baseline justify-between">
-                <span className="text-small">KPI / ผลงานรวม</span>
+                <span className="text-small">{t('tracking.kpiTotal')}</span>
                 <Num value={employee.performance} decimals={1} suffix=" / 5.0" className="text-section text-sky" />
               </div>
             ) : null}
 
             <EvidenceList
-              label="Project Outcome"
+              label={t('tracking.projectOutcome')}
               items={employee.projects.map((p) => `${p.name} — ${p.role} (${p.year})`)}
+              t={t}
             />
             <EvidenceList
-              label="Manager Assessment"
-              items={managerReviews.map((e) => `${skillName(e.skillId)}: ${e.detail} (${e.year})`)}
+              label={t('tracking.managerAssessment')}
+              items={managerReviews.map((e) => `${skillName(e.skillId)}: ${text(e.detail)} (${e.year})`)}
+              t={t}
             />
             <EvidenceList
-              label="Peer Feedback"
-              items={peerFeedback.map((e) => `${skillName(e.skillId)}: ${e.detail} (${e.year})`)}
+              label={t('tracking.peerFeedback')}
+              items={peerFeedback.map((e) => `${skillName(e.skillId)}: ${text(e.detail)} (${e.year})`)}
+              t={t}
             />
             <EvidenceList
-              label="Assessment"
-              items={assessments.map((e) => `${skillName(e.skillId)}: ${e.detail} (${e.year})`)}
+              label={t('tracking.assessment')}
+              items={assessments.map((e) => `${skillName(e.skillId)}: ${text(e.detail)} (${e.year})`)}
+              t={t}
             />
           </div>
         </Card>
 
         <Card tone="flat">
-          <CardHeader title="Career Development" hint="เป้าหมาย ความพร้อม และทางเลือกภายในองค์กร" />
+          <CardHeader title={t('tracking.careerTitle')} hint={t('tracking.careerHint')} />
           <div className="space-y-3 px-5 pb-4 text-small">
-            <Row label="Career Goal" value={readiness.roleTitle} />
+            <Row label={t('tracking.careerGoal')} value={readiness.roleTitle} />
             <Row
               label="Promotion Readiness"
-              value={
-                <span className="num text-sky">
-                  {(readiness.score * 100).toFixed(0)}%
-                  {readiness.isHighPotential ? '' : ''}
-                </span>
-              }
+              value={<span className="num text-sky">{(readiness.score * 100).toFixed(0)}%</span>}
             />
             <Row
-              label="Skill Gap Reduction"
+              label={t('tracking.gapReduction')}
               value={
                 <span className="num">
-                  ผ่าน {gap.metCount}/{gap.requiredCount} ข้อ
+                  <NumericText>
+                    {t('tracking.gapPassed', { met: gap.metCount, total: gap.requiredCount })}
+                  </NumericText>
                 </span>
               }
             />
+            <Row label="Internal Mobility" value={<InternalMobilityValue employeeId={employee.id} />} />
             <Row
-              label="Internal Mobility"
-              value={<InternalMobilityValue employeeId={employee.id} />}
-            />
-            <Row
-              label="Role Changes"
+              label={t('tracking.roleChanges')}
               value={
                 <span className="text-haze">
-                  อยู่ตำแหน่งปัจจุบัน <span className="num">{employee.yearsInRole}</span> ปี จากประสบการณ์รวม{' '}
-                  <span className="num">{employee.yearsExperience}</span> ปี
+                  <NumericText>
+                    {t('tracking.roleTenure', {
+                      years: employee.yearsInRole,
+                      total: employee.yearsExperience,
+                    })}
+                  </NumericText>
                 </span>
               }
             />
             <div className="border-t border-line/70 pt-3">
-              <p className="text-micro text-haze">ยังขาดสำหรับตำแหน่งเป้าหมาย</p>
+              <p className="text-micro text-haze">{t('tracking.stillMissing')}</p>
               <ul className="mt-1.5 space-y-1">
                 {readiness.missingSkills.length === 0 ? (
-                  <li className="text-haze">ผ่านครบทุกข้อแล้ว</li>
+                  <li className="text-haze">{t('tracking.allMet')}</li>
                 ) : (
                   readiness.missingSkills.map((item) => (
                     <li key={item.skillId} className="flex justify-between gap-3">
@@ -307,9 +323,10 @@ function IndividualTracking({ employee, session }: { employee: Employee; session
 }
 
 function InternalMobilityValue({ employeeId }: { employeeId: string }) {
+  const { t } = useI18n()
   const health = calcWorkforceHealth()
   const option = health.internalMobility.find((m) => m.employee.id === employeeId)
-  if (!option) return <span className="text-haze">ยังไม่ผ่านเกณฑ์ 70% ของตำแหน่งอื่น</span>
+  if (!option) return <span className="text-haze">{t('tracking.mobilityNone')}</span>
   return (
     <span>
       {option.role.title} <span className="num text-sky">{Math.round(option.pctMet * 100)}%</span>
@@ -318,6 +335,8 @@ function InternalMobilityValue({ employeeId }: { employeeId: string }) {
 }
 
 function TeamTracking({ employees }: { employees: Employee[] }) {
+  const { t } = useI18n()
+  const name = useName()
   const completed = useLearning((s) => s.completed)
   const started = useLearning((s) => s.started)
   const rollup = summariseTeam(employees, { completed, started })
@@ -326,51 +345,51 @@ function TeamTracking({ employees }: { employees: Employee[] }) {
     <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi
-          label="Skill Coverage"
+          label={t('dashboard.kpi.coverage')}
           value={rollup.skillCoverage * 100}
           suffix="%"
-          note={`${rollup.coveredCount} จาก ${rollup.demandCount} skill ที่งานต้องการ`}
+          note={t('tracking.coverageNote', { covered: rollup.coveredCount, total: rollup.demandCount })}
         />
         <Kpi
-          label="Promotion Readiness เฉลี่ย"
+          label={t('tracking.avgReadiness')}
           value={rollup.averageReadiness * 100}
           suffix="%"
-          note={`High Potential ${rollup.highPotentialCount} คน`}
+          note={t('tracking.highPotentialNote', { count: rollup.highPotentialCount })}
         />
         <Kpi
-          label="Skill Completion Rate เฉลี่ย"
+          label={t('tracking.avgCompletion')}
           value={rollup.averageCompletionRate * 100}
           suffix="%"
-          note="เฉลี่ยจาก Learning Path ของทุกคนในขอบเขตนี้"
+          note={t('tracking.avgCompletionNote')}
         />
         <Kpi
-          label="Internal Mobility Rate"
+          label={t('tracking.mobilityRate')}
           value={rollup.internalMobilityRate * 100}
           suffix="%"
-          note={`${rollup.mobileCount} คนผ่านเกณฑ์ 70% ของอีกตำแหน่ง`}
+          note={t('tracking.mobilityNote', { count: rollup.mobileCount })}
         />
       </div>
 
       <Card tone="flat">
-        <CardHeader title="รายคน" hint="เรียงตาม Promotion Readiness" />
+        <CardHeader title={t('tracking.perPerson')} hint={t('tracking.perPersonHint')} />
         <div className="overflow-x-auto px-5 pb-4">
           <table className="w-full min-w-180 text-left text-small">
             <thead>
               <tr className="text-micro text-haze">
-                <th className="pb-2 font-normal">ชื่อ</th>
+                <th className="pb-2 font-normal">{t('tracking.col.name')}</th>
                 <th className="pb-2 font-normal">Promotion Readiness</th>
-                <th className="pb-2 font-normal">เติบโต/เดือน</th>
-                <th className="pb-2 font-normal">Skill Completion</th>
-                <th className="pb-2 font-normal">Engagement</th>
-                <th className="pb-2 font-normal">Workload</th>
-                <th className="pb-2 font-normal">การเรียนที่ยังไม่เห็นผล</th>
+                <th className="pb-2 font-normal">{t('tracking.col.growth')}</th>
+                <th className="pb-2 font-normal">{t('tracking.col.completion')}</th>
+                <th className="pb-2 font-normal">{t('tracking.col.engagement')}</th>
+                <th className="pb-2 font-normal">{t('tracking.col.workload')}</th>
+                <th className="pb-2 font-normal">{t('tracking.col.lowOutcome')}</th>
               </tr>
             </thead>
             <tbody>
               {rollup.rows.map((row) => (
                 <tr key={row.employee.id} className="border-t border-line/60">
                   <td className="py-2 pr-3">
-                    {row.employee.name}
+                    {name(row.employee)}
                     <span className="block text-micro text-haze">{row.employee.title}</span>
                   </td>
                   <td className="py-2 pr-3">
@@ -395,7 +414,7 @@ function TeamTracking({ employees }: { employees: Employee[] }) {
                   <td className="py-2">
                     {row.lowOutcomeCount > 0 ? (
                       <Badge tone="warn">
-                        <span className="num">{row.lowOutcomeCount}</span> รายการ
+                        <NumericText>{t('tracking.lowOutcomeCount', { count: row.lowOutcomeCount })}</NumericText>
                       </Badge>
                     ) : (
                       <span className="text-haze">—</span>
@@ -442,12 +461,12 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function EvidenceList({ label, items }: { label: string; items: string[] }) {
+function EvidenceList({ label, items, t }: { label: string; items: string[]; t: TFunction }) {
   return (
     <div>
       <p className="text-micro text-haze">{label}</p>
       {items.length === 0 ? (
-        <p className="mt-1 text-small text-haze">ยังไม่มีข้อมูลบันทึกไว้</p>
+        <p className="mt-1 text-small text-haze">{t('common.noRecord')}</p>
       ) : (
         <ul className="mt-1 space-y-1 text-small">
           {items.map((item) => (

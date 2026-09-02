@@ -22,6 +22,8 @@ import {
   type ConstellationNode,
 } from '@/lib/constellation'
 import { colors, departmentHalo, departmentSwatch, motion as motionTokens } from '@/lib/theme'
+import { useName, useT } from '@/lib/i18n'
+import { NumericText } from '@/components/ui/NumericText'
 
 /**
  * §4 — the signature element. HRADA calls itself a Skill Graph, so the graph
@@ -76,6 +78,8 @@ export function SkillConstellation({
 }) {
   const navigate = useNavigate()
   const reduced = useReducedMotion()
+  const t = useT()
+  const name = useName()
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [hovered, setHovered] = useState<ConstellationNode | null>(null)
   const [ripple, setRipple] = useState<ConstellationNode | null>(null)
@@ -192,7 +196,7 @@ export function SkillConstellation({
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           className="w-full"
           role="img"
-          aria-label={`Skill Constellation ของพนักงาน ${employees.length} คน`}
+          aria-label={t('constellation.label', { count: employees.length })}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}
         >
@@ -253,6 +257,7 @@ export function SkillConstellation({
               rippling={ripple?.id === node.id}
               pointer={pointer}
               reduced={Boolean(reduced)}
+              displayName={name(node.employee)}
               onHover={setHovered}
               onActivate={activate}
             />
@@ -269,7 +274,7 @@ export function SkillConstellation({
             marginTop: -10,
           }}
         >
-          <p className="text-small">{hovered.employee.name}</p>
+          <p className="text-small">{name(hovered.employee)}</p>
           <p className="text-haze">{hovered.employee.title}</p>
           {hovered.overloaded ? (
             <p className="mt-0.5 text-warn">
@@ -290,8 +295,7 @@ export function SkillConstellation({
           </span>
         ))}
         <span className="ml-auto">
-          เส้นเชื่อม = มี skill ร่วมกันตั้งแต่ระดับ <span className="num">3.0</span> · ขนาดจุด = ระดับ skill รวม ·
-          วงสีส้ม = Workload เกิน <span className="num">85%</span>
+          <NumericText>{t('constellation.legend', { level: '3.0', threshold: '85%' })}</NumericText>
         </span>
       </div>
     </div>
@@ -390,6 +394,7 @@ function Node({
   rippling,
   pointer,
   reduced,
+  displayName,
   onHover,
   onActivate,
 }: {
@@ -400,6 +405,7 @@ function Node({
   rippling: boolean
   pointer: Pointer
   reduced: boolean
+  displayName: string
   onHover: (node: ConstellationNode | null) => void
   onActivate: (node: ConstellationNode) => void
 }) {
@@ -430,7 +436,7 @@ function Node({
       onClick={() => onActivate(node)}
       tabIndex={0}
       role="button"
-      aria-label={`${node.employee.name} — ${node.employee.title}`}
+      aria-label={`${displayName} — ${node.employee.title}`}
       onFocus={() => onHover(node)}
       onBlur={() => onHover(null)}
       onKeyDown={(e) => {

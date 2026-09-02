@@ -1,4 +1,5 @@
 import type { ScoreComponent } from '@/lib/scoring'
+import { useMessage } from '@/lib/i18n'
 
 import { NumericText } from './NumericText'
 import { Num } from './Num'
@@ -17,6 +18,7 @@ export function ScoreBreakdown({
   total: number
   totalLabel?: string
 }) {
+  const renderMsg = useMessage()
   return (
     <div className="space-y-3">
       {components.map((component) => (
@@ -35,7 +37,7 @@ export function ScoreBreakdown({
             />
           </div>
           <p className="mt-1.5 text-micro leading-relaxed text-haze">
-            <NumericText>{component.detail}</NumericText>
+            <NumericText>{renderMsg(component.detail)}</NumericText>
           </p>
         </div>
       ))}

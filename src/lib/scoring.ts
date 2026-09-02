@@ -22,7 +22,18 @@
  *
  * Nothing here decides anything. Each function returns a number plus the
  * reasoning behind it, and a human acts on it (§12).
+ *
+ * Nothing here speaks a language either. Where a number needs a sentence
+ * around it, the engine returns a Msg — the id of a template plus the values
+ * to fill it — and src/lib/i18n renders that in whichever locale is active.
+ * Person references travel as ids, never as names, because which form of a
+ * name leads is a language decision.
  */
+
+/** A sentence this engine wants said, named rather than written. */
+export type Msg = Message<TranslationKey>
+
+const msg = (id: TranslationKey, params?: Msg['params']): Msg => ({ id, params })
 
 import { CANDIDATES } from '@/data/candidates'
 import { EMPLOYEES, skillLevel } from '@/data/employees'
@@ -31,6 +42,8 @@ import { LEARNING_CATALOG } from '@/data/learningCatalog'
 import { PROJECTS } from '@/data/projects'
 import { getRole, ROLES } from '@/data/roles'
 import { SKILLS, skillCategory, skillName } from '@/data/skills'
+import type { TranslationKey } from '@/lib/i18n/en'
+import type { Message } from '@/lib/i18n/types'
 import type {
   Candidate,
   Employee,
@@ -57,6 +70,10 @@ export const HIGH_POTENTIAL_THRESHOLD = 0.75
 
 /** A learning activity that moves a level less than this has not landed (§10.9). */
 export const LOW_OUTCOME_DELTA = 0.3
+
+/** Skill/level pairs read the same in both languages, so they travel as text. */
+const skillList = (items: { skillName: string; current: number; required: number }[]) =>
+  items.map((r) => `${r.skillName} ${r.current.toFixed(1)}/${r.required.toFixed(1)}`).join(' · ')
 
 const round1 = (n: number) => Math.round(n * 10) / 10
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -190,7 +207,7 @@ export interface ScoreComponent {
   earned: number
   /** The raw 0–1 ratio before weighting — shown in the explanation panel. */
   ratio: number
-  detail: string
+  detail: Msg
 }
 
 export interface CandidateMatchResult {
@@ -271,9 +288,7 @@ export function calcCandidateMatchScore(candidate: Candidate, job: Job): Candida
       weight: 50,
       ratio: round2(requiredRatio),
       earned: round1(requiredRatio * 50),
-      detail: requiredItems
-        .map((r) => `${r.skillName} ${r.current.toFixed(1)}/${r.required.toFixed(1)}`)
-        .join(' · '),
+      detail: msg('detail.skills', { list: skillList(requiredItems) }),
     },
     {
       key: 'preferred',
@@ -282,10 +297,8 @@ export function calcCandidateMatchScore(candidate: Candidate, job: Job): Candida
       ratio: round2(preferredRatio),
       earned: round1(preferredRatio * 15),
       detail: preferredItems.length
-        ? preferredItems
-            .map((r) => `${r.skillName} ${r.current.toFixed(1)}/${r.required.toFixed(1)}`)
-            .join(' · ')
-        : 'ตำแหน่งนี้ไม่ได้ระบุ preferred skills',
+        ? msg('detail.skills', { list: skillList(preferredItems) })
+        : msg('detail.noPreferred'),
     },
     {
       key: 'experience',
@@ -293,7 +306,10 @@ export function calcCandidateMatchScore(candidate: Candidate, job: Job): Candida
       weight: 15,
       ratio: round2(experienceRatio),
       earned: round1(experienceRatio * 15),
-      detail: `${candidate.yearsExperience} ปี จากที่ต้องการอย่างน้อย ${job.minExperience} ปี`,
+      detail: msg('detail.experience', {
+        years: candidate.yearsExperience,
+        required: job.minExperience,
+      }),
     },
     {
       key: 'projects',
@@ -301,7 +317,10 @@ export function calcCandidateMatchScore(candidate: Candidate, job: Job): Candida
       weight: 10,
       ratio: round2(projectRatio),
       earned: round1(projectRatio * 10),
-      detail: `${relevantProjects.length} จาก ${candidate.projects.length} โครงการ ใช้ skill ที่ตำแหน่งนี้ต้องการ`,
+      detail: msg('detail.projectRelevance', {
+        relevant: relevantProjects.length,
+        total: candidate.projects.length,
+      }),
     },
     {
       key: 'assessment',
@@ -309,7 +328,7 @@ export function calcCandidateMatchScore(candidate: Candidate, job: Job): Candida
       weight: 10,
       ratio: round2(assessmentRatio),
       earned: round1(assessmentRatio * 10),
-      detail: `คะแนนแบบทดสอบ ${candidate.assessmentScore}/100`,
+      detail: msg('detail.assessment', { score: candidate.assessmentScore }),
     },
   ]
 
@@ -381,9 +400,7 @@ export function calcTeamFit(employee: Employee, project: ProjectSpec): TeamFitRe
       weight: 50,
       ratio: round2(skillRatio),
       earned: round1(skillRatio * 50),
-      detail: skillItems
-        .map((r) => `${r.skillName} ${r.current.toFixed(1)}/${r.required.toFixed(1)}`)
-        .join(' · '),
+      detail: msg('detail.skills', { list: skillList(skillItems) }),
     },
     {
       key: 'availability',
@@ -391,7 +408,10 @@ export function calcTeamFit(employee: Employee, project: ProjectSpec): TeamFitRe
       weight: 20,
       ratio: round2(availabilityRatio),
       earned: round1(availabilityRatio * 20),
-      detail: `Workload ปัจจุบัน ${employee.workload}% เหลือกำลัง ${100 - employee.workload}%`,
+      detail: msg('detail.availability', {
+        workload: employee.workload,
+        free: 100 - employee.workload,
+      }),
     },
     {
       key: 'performance',
@@ -399,7 +419,7 @@ export function calcTeamFit(employee: Employee, project: ProjectSpec): TeamFitRe
       weight: 15,
       ratio: round2(performanceRatio),
       earned: round1(performanceRatio * 15),
-      detail: `ผลงานล่าสุด ${employee.performance.toFixed(1)}/5.0`,
+      detail: msg('detail.performance', { performance: employee.performance.toFixed(1) }),
     },
     {
       key: 'history',
@@ -407,7 +427,10 @@ export function calcTeamFit(employee: Employee, project: ProjectSpec): TeamFitRe
       weight: 15,
       ratio: round2(historyRatio),
       earned: round1(historyRatio * 15),
-      detail: `${relevant.length} จาก ${employee.projects.length} โครงการที่ผ่านมา ใช้ skill ของโครงการนี้`,
+      detail: msg('detail.projectHistory', {
+        relevant: relevant.length,
+        total: employee.projects.length,
+      }),
     },
   ]
 
@@ -427,11 +450,11 @@ export interface TeamMember {
   fit: TeamFitResult
   talent: TalentClassification
   /** Why this person was picked, in the order the algorithm picked them. */
-  reason: string
+  reason: Msg
   /** Skills they were selected to cover. */
   covers: SkillId[]
   workloadRisk: boolean
-  backupName?: string
+  backupId?: string
 }
 
 export interface TeamSelection {
@@ -440,8 +463,8 @@ export interface TeamSelection {
   /** Required skills nobody on the team meets — feeds straight into Recruit. */
   teamGaps: SkillGapItem[]
   /** Set when a Developing Talent was swapped in to satisfy the §10.4 rule. */
-  developingTalentSwap?: { swappedOut: string; swappedIn: string; reason: string }
-  steps: string[]
+  developingTalentSwap?: { swappedOutId: string; swappedInId: string; reason: Msg }
+  steps: Msg[]
 }
 
 /**
@@ -457,7 +480,7 @@ export function selectTeam(
   employees: Employee[] = EMPLOYEES,
   teamSize: number = project.teamSize,
 ): TeamSelection {
-  const steps: string[] = []
+  const steps: Msg[] = []
   const pool = employees.map((employee) => ({
     employee,
     fit: calcTeamFit(employee, project),
@@ -466,9 +489,10 @@ export function selectTeam(
   let uncovered = project.requiredSkills.map((r) => ({ ...r }))
   const picked: TeamMember[] = []
   steps.push(
-    `เริ่มจาก required skills ที่ยังไม่มีคนรับผิดชอบ ${uncovered.length} รายการ: ${uncovered
-      .map((u) => skillName(u.skillId))
-      .join(', ')}`,
+    msg('team.step.start', {
+      count: uncovered.length,
+      list: uncovered.map((u) => skillName(u.skillId)).join(', '),
+    }),
   )
 
   // 1–2. Cover as many open requirements as possible, one person at a time.
@@ -484,7 +508,7 @@ export function selectTeam(
       .filter((s) => s.covers.length > 0)
       .sort((a, b) => b.covers.length - a.covers.length || b.fit.total - a.fit.total)[0]
     if (!best) {
-      steps.push('ไม่มีใครในองค์กรครอบคลุม skill ที่เหลือได้อีก จึงหยุดขั้นตอน coverage')
+      steps.push(msg('team.step.exhausted'))
       break
     }
     picked.push({
@@ -492,15 +516,19 @@ export function selectTeam(
       fit: best.fit,
       talent: classifyTalent(best.employee),
       covers: best.covers,
-      reason: `ครอบคลุม ${best.covers.length} skill ที่ยังขาด (${best.covers
-        .map(skillName)
-        .join(', ')}) และมี Fit ${best.fit.total.toFixed(1)}%`,
+      reason: msg('team.reason.cover', {
+        count: best.covers.length,
+        list: best.covers.map(skillName).join(', '),
+        fit: best.fit.total.toFixed(1),
+      }),
       workloadRisk: best.employee.workload > 90,
     })
     steps.push(
-      `เลือก ${best.employee.name} เพราะปิดได้ ${best.covers.length} skill: ${best.covers
-        .map(skillName)
-        .join(', ')}`,
+      msg('team.step.pick', {
+        employeeId: best.employee.id,
+        count: best.covers.length,
+        list: best.covers.map(skillName).join(', '),
+      }),
     )
     uncovered = uncovered.filter((u) => !best.covers.includes(u.skillId))
   }
@@ -518,10 +546,12 @@ export function selectTeam(
         fit: p.fit,
         talent: classifyTalent(p.employee),
         covers: [],
-        reason: `เติมทีมด้วยคนที่ Fit สูงสุดในกลุ่มที่ยังมีกำลังเหลือมากกว่า 20% (Fit ${p.fit.total.toFixed(1)}%)`,
+        reason: msg('team.reason.fill', { fit: p.fit.total.toFixed(1) }),
         workloadRisk: p.employee.workload > 90,
       })
-      steps.push(`เติม ${p.employee.name} จาก Fit ${p.fit.total.toFixed(1)}% และยังมีกำลังเหลือ`)
+      steps.push(
+        msg('team.step.fill', { employeeId: p.employee.id, fit: p.fit.total.toFixed(1) }),
+      )
     }
   }
 
@@ -546,13 +576,17 @@ export function selectTeam(
           fit: incoming.fit,
           talent: classifyTalent(incoming.employee),
           covers: [],
-          reason: `ทีมขนาด ${picked.length} คนต้องมี Developing Talent อย่างน้อย 1 คน จึงสลับเข้ามาแทนคนที่ Fit ต่ำสุดและไม่ได้ถือ skill สำคัญไว้คนเดียว`,
+          reason: msg('team.reason.swap', { size: picked.length }),
           workloadRisk: incoming.employee.workload > 90,
         }
         swap = {
-          swappedOut: outgoing.employee.name,
-          swappedIn: incoming.employee.name,
-          reason: `ทีมตั้งแต่ 4 คนขึ้นไปต้องมี Developing Talent เพื่อให้โครงการสร้างคนไปด้วย จึงสลับ ${outgoing.employee.name} (Fit ${outgoing.fit.total.toFixed(1)}%) ออก และให้ ${incoming.employee.name} เข้ามาแทน`,
+          swappedOutId: outgoing.employee.id,
+          swappedInId: incoming.employee.id,
+          reason: msg('team.swap.reason', {
+            swappedOutId: outgoing.employee.id,
+            swappedInId: incoming.employee.id,
+            fit: outgoing.fit.total.toFixed(1),
+          }),
         }
         steps.push(swap.reason)
       }
@@ -566,7 +600,7 @@ export function selectTeam(
       .filter((p) => !picked.some((m) => m.employee.id === p.employee.id))
       .filter((p) => p.employee.workload <= 85)
       .sort((a, b) => b.fit.total - a.fit.total)[0]
-    member.backupName = backup?.employee.name
+    member.backupId = backup?.employee.id
   }
 
   // 6. Whatever the team still cannot do becomes a hiring signal.
@@ -584,9 +618,7 @@ export function selectTeam(
     .filter((g) => g.gap > 0)
 
   if (teamGaps.length > 0) {
-    steps.push(
-      `ทีมนี้ยังไม่ถึงเกณฑ์ใน ${teamGaps.map((g) => g.skillName).join(', ')} — ต้องตัดสินใจว่าจะพัฒนาคนในทีมหรือเปิดรับสมัคร`,
-    )
+    steps.push(msg('team.step.gaps', { list: teamGaps.map((g) => g.skillName).join(', ') }))
   }
 
   return { projectId: project.id, members: picked, teamGaps, developingTalentSwap: swap, steps }
@@ -598,7 +630,7 @@ export interface TalentClassification {
   type: TalentType
   /** 0–1 confidence, used only to break ties between qualifying types. */
   score: number
-  reason: string
+  reason: Msg
   /**
    * False when the person met none of the three sets of criteria. The label
    * still reads Developing Talent, but the UI shows it muted and says why —
@@ -607,7 +639,7 @@ export interface TalentClassification {
    */
   qualified: boolean
   /** Every type the person qualifies for, strongest first. */
-  qualifiesFor: { type: TalentType; score: number; reason: string }[]
+  qualifiesFor: { type: TalentType; score: number; reason: Msg }[]
 }
 
 /**
@@ -616,7 +648,7 @@ export interface TalentClassification {
  * where they land in a ranking of their colleagues.
  */
 export function classifyTalent(employee: Employee): TalentClassification {
-  const qualifying: { type: TalentType; score: number; reason: string }[] = []
+  const qualifying: { type: TalentType; score: number; reason: Msg }[] = []
 
   // Core Expert — a deeply evidenced peak skill plus sustained performance.
   const expertSkills = employee.skills.filter(
@@ -627,7 +659,12 @@ export function classifyTalent(employee: Employee): TalentClassification {
     qualifying.push({
       type: 'Core Expert',
       score: round2(0.6 + 0.4 * clamp01((peak.level - 4.3) / 0.7)),
-      reason: `${skillName(peak.skillId)} อยู่ที่ ${peak.level.toFixed(1)} มีหลักฐานรองรับ ${peak.evidence.length} แหล่ง และผลงาน ${employee.performance.toFixed(1)}/5.0`,
+      reason: msg('talent.coreExpert', {
+        skill: skillName(peak.skillId),
+        level: peak.level.toFixed(1),
+        evidence: peak.evidence.length,
+        performance: employee.performance.toFixed(1),
+      }),
     })
   }
 
@@ -645,7 +682,10 @@ export function classifyTalent(employee: Employee): TalentClassification {
     qualifying.push({
       type: 'Bridge Member',
       score: round2(0.5 + 0.5 * clamp01(breadth * 0.6 + reach * 0.4)),
-      reason: `มี skill ระดับ 3.2 ขึ้นไปใน ${spreadCategories.size} หมวด และเคยทำโครงการข้ามแผนก ${crossDeptProjects} โครงการ`,
+      reason: msg('talent.bridgeMember', {
+        categories: spreadCategories.size,
+        projects: crossDeptProjects,
+      }),
     })
   }
 
@@ -656,7 +696,12 @@ export function classifyTalent(employee: Employee): TalentClassification {
     qualifying.push({
       type: 'Developing Talent',
       score: round2(0.5 + 0.5 * clamp01((growth - GROWTH_TREND_PER_MONTH) / 0.25)),
-      reason: `ยังมี gap ไปสู่ ${gap.roleTitle} (${gap.primaryGap.skillName} ขาด ${gap.primaryGap.gap.toFixed(1)}) และโตเฉลี่ย +${growth.toFixed(2)} ระดับต่อเดือนใน 6 เดือนล่าสุด`,
+      reason: msg('talent.developing', {
+        role: gap.roleTitle,
+        skill: gap.primaryGap.skillName,
+        gap: gap.primaryGap.gap.toFixed(1),
+        growth: `+${growth.toFixed(2)}`,
+      }),
     })
   }
 
@@ -666,7 +711,10 @@ export function classifyTalent(employee: Employee): TalentClassification {
     return {
       type: 'Developing Talent',
       score: 0,
-      reason: `ยังไม่เข้าเกณฑ์ Core Expert หรือ Bridge Member และอัตราการเติบโตเฉลี่ย +${growth.toFixed(2)} ต่อเดือน ยังต่ำกว่าเกณฑ์ ${GROWTH_TREND_PER_MONTH}`,
+      reason: msg('talent.unqualified', {
+        growth: `+${growth.toFixed(2)}`,
+        threshold: GROWTH_TREND_PER_MONTH,
+      }),
       qualified: false,
       qualifiesFor: [],
     }
@@ -704,7 +752,11 @@ export function calcPromotionReadiness(employee: Employee): PromotionReadinessRe
       weight: 70,
       ratio: round2(gap.pctMet),
       earned: round1(gap.pctMet * 70),
-      detail: `ผ่านเกณฑ์ ${gap.metCount} จาก ${gap.requiredCount} skill ที่ ${role.title} ต้องการ`,
+      detail: msg('detail.readinessSkills', {
+        met: gap.metCount,
+        total: gap.requiredCount,
+        role: role.title,
+      }),
     },
     {
       key: 'performance',
@@ -712,7 +764,7 @@ export function calcPromotionReadiness(employee: Employee): PromotionReadinessRe
       weight: 20,
       ratio: round2(employee.performance / 5),
       earned: round1((employee.performance / 5) * 20),
-      detail: `ผลงานล่าสุด ${employee.performance.toFixed(1)}/5.0`,
+      detail: msg('detail.performance', { performance: employee.performance.toFixed(1) }),
     },
     {
       key: 'tenure',
@@ -720,7 +772,7 @@ export function calcPromotionReadiness(employee: Employee): PromotionReadinessRe
       weight: 10,
       ratio: round2(tenureRatio),
       earned: round1(tenureRatio * 10),
-      detail: `อยู่ในตำแหน่งปัจจุบัน ${employee.yearsInRole} ปี (นับเต็มที่ 3 ปี)`,
+      detail: msg('detail.tenure', { years: employee.yearsInRole }),
     },
   ]
 
@@ -743,15 +795,21 @@ export function calcPromotionReadiness(employee: Employee): PromotionReadinessRe
  * projects. A role somebody hopes to grow into is not org demand, so
  * src/data/roles.ts deliberately does not feed this.
  */
+/** Where a demand comes from. Rendered by the presentation layer, not here. */
+export interface DemandSource {
+  kind: 'job' | 'project'
+  name: string
+}
+
 export interface SkillDemand {
   skillId: SkillId
   skillName: string
   /** Highest level any open job or active project asks for. */
   requiredLevel: number
-  sources: string[]
+  sources: DemandSource[]
   /** People at or above requiredLevel. */
   meetingCount: number
-  meetingNames: string[]
+  meetingIds: string[]
 }
 
 export function skillDemand(
@@ -759,21 +817,25 @@ export function skillDemand(
   jobs: Job[] = JOBS,
   projects: ProjectSpec[] = PROJECTS,
 ): SkillDemand[] {
-  const demand = new Map<SkillId, { level: number; sources: string[] }>()
-  const add = (skillId: SkillId, level: number, source: string) => {
+  const demand = new Map<SkillId, { level: number; sources: DemandSource[] }>()
+  const add = (skillId: SkillId, level: number, source: DemandSource) => {
     const existing = demand.get(skillId)
     if (!existing) demand.set(skillId, { level, sources: [source] })
     else {
       existing.level = Math.max(existing.level, level)
-      if (!existing.sources.includes(source)) existing.sources.push(source)
+      if (!existing.sources.some((s) => s.kind === source.kind && s.name === source.name)) {
+        existing.sources.push(source)
+      }
     }
   }
   for (const job of jobs) {
-    for (const r of job.requiredSkills) add(r.skillId, r.level, `ตำแหน่งเปิดรับ: ${job.title}`)
-    for (const r of job.preferredSkills) add(r.skillId, r.level, `ตำแหน่งเปิดรับ: ${job.title}`)
+    const source: DemandSource = { kind: 'job', name: job.title }
+    for (const r of job.requiredSkills) add(r.skillId, r.level, source)
+    for (const r of job.preferredSkills) add(r.skillId, r.level, source)
   }
   for (const project of projects) {
-    for (const r of project.requiredSkills) add(r.skillId, r.level, `โครงการ: ${project.name}`)
+    const source: DemandSource = { kind: 'project', name: project.name }
+    for (const r of project.requiredSkills) add(r.skillId, r.level, source)
   }
 
   return [...demand.entries()]
@@ -785,7 +847,7 @@ export function skillDemand(
         requiredLevel: level,
         sources,
         meetingCount: meeting.length,
-        meetingNames: meeting.map((e) => e.name),
+        meetingIds: meeting.map((e) => e.id),
       }
     })
     .sort((a, b) => a.meetingCount - b.meetingCount || a.skillName.localeCompare(b.skillName))
@@ -794,12 +856,11 @@ export function skillDemand(
 export interface AtRiskSkill {
   skillId: SkillId
   skillName: string
-  ownerName: string
   ownerId: string
   ownerLevel: number
   /** Best level held by anybody else — how thin the bench is. */
   secondBestLevel: number
-  secondBestName: string | null
+  secondBestId: string | null
 }
 
 export interface WorkforceHealth {
@@ -849,11 +910,10 @@ export function calcWorkforceHealth(employees: Employee[] = EMPLOYEES): Workforc
     return {
       skillId: skill.id,
       skillName: skill.name,
-      ownerName: owner.name,
       ownerId: owner.id,
       ownerLevel: skillLevelOf(owner, skill.id),
       secondBestLevel: bench ? skillLevelOf(bench, skill.id) : 0,
-      secondBestName: bench ? bench.name : null,
+      secondBestId: bench ? bench.id : null,
     }
   })
     .filter((s): s is AtRiskSkill => s !== null)
@@ -936,14 +996,15 @@ export function skillCoverageByDepartment(employees: Employee[] = EMPLOYEES) {
 
 export interface LearningStep {
   id: string
-  title: string
+  /** A catalog course keeps its own name; a synthesised step is a template. */
+  title: string | Msg
   type: LearningItem['type']
   targetSkill: SkillId
   difficulty: number
   durationHours: number
   /** True for the two closing steps the method always appends. */
   synthesized: boolean
-  rationale: string
+  rationale: Msg
 }
 
 export interface LearningPath {
@@ -954,7 +1015,7 @@ export interface LearningPath {
   toLevel: number
   steps: LearningStep[]
   /** Why the path ends the way it does — shown in the UI (§10.8). */
-  method: string
+  method: Msg
 }
 
 /**
@@ -972,8 +1033,7 @@ export function generateLearningPath(
   const gap = calcSkillGap(employee, role)
   const primary = gap.primaryGap
 
-  const method =
-    'เรียงจากง่ายไปยาก แล้วปิดท้ายด้วยงานจริงและการประเมินจากหัวหน้าเสมอ เพราะ skill จะขยับจริงตอนได้ใช้กับงานจริง ไม่ใช่ตอนเรียนจบ'
+  const method = msg('path.method')
 
   if (!primary) {
     return {
@@ -999,29 +1059,33 @@ export function generateLearningPath(
     difficulty: item.difficulty,
     durationHours: item.durationHours,
     synthesized: false,
-    rationale: `ระดับความยาก ${item.difficulty}/3 ตรงกับ ${primary.skillName} ที่ยังขาดอยู่ ${primary.gap.toFixed(1)} ระดับ`,
+    rationale: msg('path.rationale', {
+      difficulty: item.difficulty,
+      skill: primary.skillName,
+      gap: primary.gap.toFixed(1),
+    }),
   }))
 
   steps.push(
     {
       id: `${employee.id}-real-project`,
-      title: `รับผิดชอบงานจริงที่ต้องใช้ ${primary.skillName}`,
+      title: msg('path.realProject.title', { skill: primary.skillName }),
       type: 'Project',
       targetSkill: primary.skillId,
       difficulty: 3,
       durationHours: 40,
       synthesized: true,
-      rationale: 'ขั้นนี้บังคับเสมอ — ถ้าไม่ได้ใช้กับงานจริง ระดับ skill มักไม่ขยับ',
+      rationale: msg('path.realProject.rationale'),
     },
     {
       id: `${employee.id}-manager-assessment`,
-      title: `ให้หัวหน้าประเมิน ${primary.skillName} อีกครั้ง`,
+      title: msg('path.assessment.title', { skill: primary.skillName }),
       type: 'On-the-job',
       targetSkill: primary.skillId,
       difficulty: 1,
       durationHours: 2,
       synthesized: true,
-      rationale: 'ปิดวงจรด้วยหลักฐานใหม่ เพื่อให้ระดับที่บันทึกไว้ตรงกับความสามารถจริง',
+      rationale: msg('path.assessment.rationale'),
     },
   )
 
@@ -1041,7 +1105,7 @@ export interface LearningOutcome {
   after: number
   delta: number
   lowOutcomeFlag: boolean
-  message: string
+  message: Msg
 }
 
 /** §10.9 — a move smaller than 0.3 has not produced anything measurable yet. */
@@ -1054,8 +1118,8 @@ export function calcLearningOutcome(before: number, after: number): LearningOutc
     delta,
     lowOutcomeFlag,
     message: lowOutcomeFlag
-      ? `ขยับขึ้นเพียง ${delta.toFixed(1)} ระดับ — การเรียนนี้ยังไม่เห็นผลที่วัดได้ ลองจับคู่กับงานจริงหรือ mentorship`
-      : `ขยับขึ้น ${delta.toFixed(1)} ระดับ — การเรียนนี้เห็นผลที่วัดได้`,
+      ? msg('outcome.low', { delta: delta.toFixed(1) })
+      : msg('outcome.ok', { delta: delta.toFixed(1) }),
   }
 }
 
@@ -1108,7 +1172,7 @@ export function calcEngagementInDevelopmentPlan(employee: Employee, startedStepI
  * first and last history points that cross the required threshold.
  *
  * On this dataset the answer is usually null: a primary gap is by definition
- * still open, so the series never crosses. The UI says "ยังวัดไม่ได้" rather
+ * still open, so the series never crosses. The UI says "not measurable yet" rather
  * than showing an invented number.
  */
 export function calcTimeToCompetency(employee: Employee) {
@@ -1149,7 +1213,10 @@ export function calcManagerSatisfaction(employee: Employee) {
     score: round2(employee.performance / 5),
     performance: employee.performance,
     reviewCount: reviews.length,
-    basis: `ใช้ผลงาน ${employee.performance.toFixed(1)}/5.0 และ Manager Review ${reviews.length} รายการ เป็นตัวแทนของ Manager Satisfaction`,
+    basis: msg('manager.satisfaction.basis', {
+      performance: employee.performance.toFixed(1),
+      reviews: reviews.length,
+    }),
   }
 }
 
@@ -1225,15 +1292,68 @@ export function summariseTeam(
 
 export type InsightSeverity = 'critical' | 'warn' | 'opportunity'
 
+export type InsightKind =
+  | 'critical-skill-gap'
+  | 'at-risk-skill'
+  | 'workload-risk'
+  | 'growth-opportunity'
+
+/**
+ * §10.10 — an insight, as data.
+ *
+ * The engine names the finding and hands over everything the sentence needs;
+ * it writes no sentence itself. src/lib/i18n/insights.ts turns one of these
+ * into a title, a "computed from" line and a formula in the active locale.
+ * A discriminated union means adding a kind forces the renderer to handle it.
+ */
+export type InsightPayload =
+  | {
+      kind: 'critical-skill-gap'
+      skillId: SkillId
+      skillName: string
+      requiredLevel: number
+      sources: DemandSource[]
+      headcount: number
+    }
+  | {
+      kind: 'at-risk-skill'
+      skillId: SkillId
+      skillName: string
+      bar: number
+      ownerId: string
+      ownerLevel: number
+      secondBestId: string | null
+      secondBestLevel: number
+    }
+  | {
+      kind: 'workload-risk'
+      employeeId: string
+      workload: number
+      performance: number
+    }
+  | {
+      kind: 'growth-opportunity'
+      variant: 'growth'
+      employeeId: string
+      growthPerMonth: number
+      threshold: number
+    }
+  | {
+      kind: 'growth-opportunity'
+      variant: 'promotion'
+      employeeId: string
+      roleTitle: string
+      percent: number
+      components: ScoreComponent[]
+    }
+
 export interface Insight {
   id: string
   severity: InsightSeverity
-  kind: 'Critical Skill Gap' | 'At-Risk Skill' | 'Workload Risk' | 'Growth Opportunity'
-  title: string
-  /** Exactly what this was computed from (§10.10). */
-  computedFrom: string
-  formula: string
-  action: { label: string; to: string }
+  kind: InsightKind
+  payload: InsightPayload
+  /** Where a person can act on this. */
+  to: string
 }
 
 /**
@@ -1248,30 +1368,35 @@ export function generateInsights(employees: Employee[] = EMPLOYEES): Insight[] {
     insights.push({
       id: `critical-${gap.skillId}`,
       severity: 'critical',
-      kind: 'Critical Skill Gap',
-      title: `ไม่มีใครทำ ${gap.skillName} ได้ถึงระดับที่งานที่รับปากไว้ต้องการ`,
-      computedFrom: `${gap.sources.join(' และ ')} ต้องการระดับ ${gap.requiredLevel.toFixed(1)} แต่ในองค์กร ${employees.length} คน ไม่มีใครถึงเกณฑ์นี้`,
-      formula: 'Critical Skill Gap = skill ที่มีงานเปิดรับหรือโครงการต้องการ และมีคนถึงเกณฑ์ 0 คน',
-      action: { label: 'ดูตำแหน่งที่เปิดรับ', to: '/recruit' },
+      kind: 'critical-skill-gap',
+      to: '/recruit',
+      payload: {
+        kind: 'critical-skill-gap',
+        skillId: gap.skillId,
+        skillName: gap.skillName,
+        requiredLevel: gap.requiredLevel,
+        sources: gap.sources,
+        headcount: employees.length,
+      },
     })
   }
 
-  // Every at-risk skill produces an insight. The Insights screen shows the
-  // five thinnest benches by default and lets the user expand to the rest —
-  // trimming the list here would hide findings from the data model itself.
   for (const risk of health.atRiskSkills) {
     insights.push({
       id: `at-risk-${risk.skillId}`,
       severity: 'warn',
-      kind: 'At-Risk Skill',
-      title: `${risk.skillName} มีคนเดียวที่ถึงระดับ ${OWNERSHIP_BAR.toFixed(1)}`,
-      computedFrom: `${risk.ownerName} อยู่ที่ ${risk.ownerLevel.toFixed(1)}${
-        risk.secondBestName
-          ? ` คนถัดไปคือ ${risk.secondBestName} ที่ ${risk.secondBestLevel.toFixed(1)}`
-          : ' และไม่มีคนอื่นในองค์กรที่ทำ skill นี้ได้เลย'
-      }`,
-      formula: `At-Risk Skill = skill ที่มีคนถึงระดับ ${OWNERSHIP_BAR.toFixed(1)} เพียง 1 คน`,
-      action: { label: 'สร้าง Learning Path ให้คนสำรอง', to: '/learning' },
+      kind: 'at-risk-skill',
+      to: '/learning',
+      payload: {
+        kind: 'at-risk-skill',
+        skillId: risk.skillId,
+        skillName: risk.skillName,
+        bar: OWNERSHIP_BAR,
+        ownerId: risk.ownerId,
+        ownerLevel: risk.ownerLevel,
+        secondBestId: risk.secondBestId,
+        secondBestLevel: risk.secondBestLevel,
+      },
     })
   }
 
@@ -1279,26 +1404,32 @@ export function generateInsights(employees: Employee[] = EMPLOYEES): Insight[] {
     insights.push({
       id: `workload-${employee.id}`,
       severity: 'warn',
-      kind: 'Workload Risk',
-      title: `${employee.name} รับงานอยู่ ${employee.workload}% และเป็นคนที่ผลงานสูง`,
-      computedFrom: `Workload ${employee.workload}% (เกิน 85%) และผลงาน ${employee.performance.toFixed(1)}/5.0 (ตั้งแต่ 4.0 ขึ้นไป)`,
-      formula: 'Workload Risk = workload มากกว่า 85% และ performance ตั้งแต่ 4.0',
-      action: { label: 'กระจายงานผ่าน Team Matching', to: '/team-matching' },
+      kind: 'workload-risk',
+      to: '/team-matching',
+      payload: {
+        kind: 'workload-risk',
+        employeeId: employee.id,
+        workload: employee.workload,
+        performance: employee.performance,
+      },
     })
   }
 
   for (const employee of employees) {
     const talent = classifyTalent(employee)
     if (talent.type !== 'Developing Talent' || talent.score === 0) continue
-    const growth = avgMonthlyGrowth(employee)
     insights.push({
       id: `growth-${employee.id}`,
       severity: 'opportunity',
-      kind: 'Growth Opportunity',
-      title: `${employee.name} กำลังโตเร็วกว่าค่าเฉลี่ยขององค์กร`,
-      computedFrom: `skillHistory 6 เดือน (Mar–Aug 2026) โตเฉลี่ย +${growth.toFixed(2)} ระดับต่อเดือน สูงกว่าเกณฑ์ ${GROWTH_TREND_PER_MONTH}`,
-      formula: 'Growth Opportunity = Developing Talent ที่มีอัตราโตเฉลี่ยตั้งแต่ +0.15 ระดับต่อเดือน',
-      action: { label: 'ดู Learning Path', to: '/learning' },
+      kind: 'growth-opportunity',
+      to: '/learning',
+      payload: {
+        kind: 'growth-opportunity',
+        variant: 'growth',
+        employeeId: employee.id,
+        growthPerMonth: avgMonthlyGrowth(employee),
+        threshold: GROWTH_TREND_PER_MONTH,
+      },
     })
   }
 
@@ -1306,11 +1437,16 @@ export function generateInsights(employees: Employee[] = EMPLOYEES): Insight[] {
     insights.push({
       id: `promotion-${hp.employee.id}`,
       severity: 'opportunity',
-      kind: 'Growth Opportunity',
-      title: `${hp.employee.name} มี Promotion Readiness ${Math.round(hp.readiness.score * 100)}% สำหรับ ${hp.readiness.roleTitle}`,
-      computedFrom: hp.readiness.components.map((c) => `${c.label} ${c.earned}/${c.weight}`).join(' · '),
-      formula: 'Promotion Readiness = (skill ที่ผ่านเกณฑ์ × 0.7) + (performance/5 × 0.2) + (min(ปีในตำแหน่ง/3, 1) × 0.1)',
-      action: { label: 'ดูโปรไฟล์', to: `/employees/${hp.employee.id}` },
+      kind: 'growth-opportunity',
+      to: `/employees/${hp.employee.id}`,
+      payload: {
+        kind: 'growth-opportunity',
+        variant: 'promotion',
+        employeeId: hp.employee.id,
+        roleTitle: hp.readiness.roleTitle,
+        percent: Math.round(hp.readiness.score * 100),
+        components: hp.readiness.components,
+      },
     })
   }
 

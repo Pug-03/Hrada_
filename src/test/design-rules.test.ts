@@ -126,11 +126,22 @@ describe('§5 loading states', () => {
     expect(offenders).toEqual([])
   })
 
-  it('names what is being analysed on every analysis screen', () => {
-    for (const path of ['pages/Recruit.tsx', 'pages/TeamMatching.tsx']) {
+  it('names what is being analysed on every analysis screen, in both locales', () => {
+    // The message is a translation key now rather than an inline template
+    // literal, so the check follows the key into both dictionaries instead of
+    // grepping the page source for Thai text.
+    const th = readFileSync(join(ROOT, 'lib/i18n/th.ts'), 'utf8')
+    const en = readFileSync(join(ROOT, 'lib/i18n/en.ts'), 'utf8')
+    const cases: [string, string][] = [
+      ['pages/Recruit.tsx', 'recruit.analysing'],
+      ['pages/TeamMatching.tsx', 'team.analysing'],
+    ]
+    for (const [path, key] of cases) {
       const page = files.find((f) => f.path === path)!
       expect(page.source, path).toContain('<AnalysisLoader')
-      expect(page.source, path).toMatch(/message=\{`กำลังวิเคราะห์/)
+      expect(page.source, path).toContain(`t('${key}'`)
+      expect(th, key).toMatch(new RegExp(`'${key}':\\s*'กำลังวิเคราะห์`))
+      expect(en, key).toMatch(new RegExp(`'${key}':\\s*'Analysing`))
     }
   })
 })

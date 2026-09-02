@@ -3,9 +3,9 @@ import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { EMPLOYEES } from '@/data/employees'
-import { ORG } from '@/data/employees'
+import { EMPLOYEES, ORG } from '@/data/employees'
 import type { Department } from '@/data/types'
+import { useName, useT } from '@/lib/i18n'
 import { homeFor } from '@/lib/permissions'
 import { useSession } from '@/store/session'
 
@@ -19,13 +19,15 @@ export function RoleSwitcher() {
   const reduced = useReducedMotion()
   const navigate = useNavigate()
   const session = useSession()
+  const t = useT()
+  const name = useName()
 
   const label =
     session.role === 'Manager'
       ? `Manager · ${session.managerDepartment}`
       : session.role === 'Employee'
-        ? `Employee · ${EMPLOYEES.find((e) => e.id === session.employeeId)?.name ?? ''}`
-        : (session.role ?? 'เลือกบทบาท')
+        ? `Employee · ${name(EMPLOYEES.find((e) => e.id === session.employeeId) ?? EMPLOYEES[0])}`
+        : (session.role ?? t('role.choose'))
 
   const go = (fn: () => void) => {
     fn()
@@ -41,7 +43,7 @@ export function RoleSwitcher() {
         className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-1.5 text-small transition-colors duration-150 hover:bg-panel-raised"
         aria-expanded={open}
       >
-        <span className="text-haze">บทบาท</span>
+        <span className="text-haze">{t('role.switch')}</span>
         <span>{label}</span>
         <ChevronDown size={14} className="text-haze" />
       </button>
@@ -57,11 +59,11 @@ export function RoleSwitcher() {
               transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
               className="absolute right-0 z-40 mt-2 w-75 rounded-xl border border-line bg-panel p-2 shadow-xl shadow-black/50"
             >
-              <Group label="ทั้งองค์กร">
-                <Item onClick={() => go(useSession.getState().signInAsHR)}>HR / HR Manager</Item>
-                <Item onClick={() => go(useSession.getState().signInAsCEO)}>CEO / Business Owner</Item>
+              <Group label={t('role.groupOrg')}>
+                <Item onClick={() => go(useSession.getState().signInAsHR)}>{t('role.hr')}</Item>
+                <Item onClick={() => go(useSession.getState().signInAsCEO)}>{t('role.ceo')}</Item>
               </Group>
-              <Group label="Manager — เลือกแผนกที่ดูแล">
+              <Group label={t('role.groupManager')}>
                 {ORG.departments.map((department) => (
                   <Item
                     key={department}
@@ -71,14 +73,14 @@ export function RoleSwitcher() {
                   </Item>
                 ))}
               </Group>
-              <Group label="Employee — เลือกว่าเป็นใคร">
+              <Group label={t('role.groupEmployee')}>
                 <div className="max-h-52 overflow-y-auto">
                   {EMPLOYEES.map((employee) => (
                     <Item
                       key={employee.id}
                       onClick={() => go(() => useSession.getState().signInAsEmployee(employee.id))}
                     >
-                      {employee.name}
+                      {name(employee)}
                       <span className="text-haze"> · {employee.title}</span>
                     </Item>
                   ))}

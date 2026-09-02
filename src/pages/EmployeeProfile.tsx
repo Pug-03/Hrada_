@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 
 import { SkillHistoryLineChart, SkillRadarChart } from '@/components/charts/Charts'
+import type { DeniedState } from '@/components/DeniedState'
 import { SkillLevelLegend } from '@/components/SkillLevelLegend'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -16,10 +17,10 @@ import { ScoreBreakdown } from '@/components/ui/Explain'
 import { EMPLOYEES, HISTORY_MONTHS } from '@/data/employees'
 import { bandFor, skillName } from '@/data/skills'
 import type { SkillId } from '@/data/types'
+import { secondaryName, useI18n, useMessage, useName, useText } from '@/lib/i18n'
 import {
   canViewPerformance,
   canViewWorkload,
-  denialReason,
   visibleEmployees,
   type Session,
 } from '@/lib/permissions'
@@ -41,6 +42,10 @@ export default function EmployeeProfile() {
   const { id = '' } = useParams()
   const session = useSession() as unknown as Session
   const reduced = useReducedMotion()
+  const { t, locale } = useI18n()
+  const name = useName()
+  const text = useText()
+  const renderMsg = useMessage()
   const [openSkill, setOpenSkill] = useState<SkillId | null>(null)
   const [legendOpen, setLegendOpen] = useState(false)
   const [readinessOpen, setReadinessOpen] = useState(false)
@@ -79,16 +84,12 @@ export default function EmployeeProfile() {
 
   if (!employee) return <Navigate to="/employees" replace />
   if (!allowed) {
-    return (
-      <Navigate
-        to="/not-authorized"
-        replace
-        state={{
-          reason: `${denialReason(session, 'employees')} — โปรไฟล์ของคนอื่นอยู่นอกขอบเขตที่บทบาทนี้เห็นได้`,
-          attempted: `/employees/${id}`,
-        }}
-      />
-    )
+    const state: DeniedState = {
+      screen: 'employees',
+      attempted: `/employees/${id}`,
+      suffixKey: 'profile.denied',
+    }
+    return <Navigate to="/not-authorized" replace state={state} />
   }
 
   const role = targetRoleOf(employee)
@@ -120,15 +121,15 @@ export default function EmployeeProfile() {
             />
           </svg>
           <div>
-            <h1 className="text-title leading-tight font-semibold">{employee.name}</h1>
+            <h1 className="text-title leading-tight font-semibold">{name(employee)}</h1>
             <p className="mt-0.5 text-small text-haze">
               {employee.title} · {employee.department} · {employee.employmentType}
-              <span className="text-haze/70"> · {employee.nameLatin}</span>
+              <span className="text-haze/70"> · {secondaryName(employee, locale)}</span>
             </p>
             {talent ? (
               <p className="mt-1.5 text-micro" style={{ color: talent.qualified ? talentColor[talent.type] : undefined }}>
-                {talent.qualified ? talent.type : 'ยังไม่เข้าเกณฑ์การจัดกลุ่ม'} —{' '}
-                <NumericText>{talent.reason}</NumericText>
+                {talent.qualified ? talent.type : t('employees.unclassified')} —{' '}
+                <NumericText>{renderMsg(talent.reason)}</NumericText>
               </p>
             ) : null}
           </div>
@@ -137,13 +138,13 @@ export default function EmployeeProfile() {
         <div className="flex flex-wrap gap-2">
           {canViewPerformance(session, employee.id) ? (
             <Card tone="quiet" className="px-3 py-2">
-              <p className="text-micro text-haze">Performance</p>
+              <p className="text-micro text-haze">{t('tracking.kpiTotal')}</p>
               <Num value={employee.performance} decimals={1} suffix=" / 5.0" className="text-section text-sky" />
             </Card>
           ) : null}
           {canViewWorkload(session, employee.id) ? (
             <Card tone="quiet" className="px-3 py-2">
-              <p className="text-micro text-haze">Workload</p>
+              <p className="text-micro text-haze">{t('tracking.col.workload')}</p>
               <Num
                 value={employee.workload}
                 suffix="%"
@@ -157,11 +158,11 @@ export default function EmployeeProfile() {
       <div className="grid gap-4 lg:grid-cols-5">
         <Card tone="flat" className="lg:col-span-3">
           <CardHeader
-            title="Skills"
-            hint="กดที่ skill เพื่อดูหลักฐานที่ใช้ประเมินระดับนั้น"
+            title={t('profile.skills.title')}
+            hint={t('profile.skills.hint')}
             right={
               <Button variant="ghost" icon={<Info size={14} />} onClick={() => setLegendOpen(true)}>
-                Skill Level Scale
+                {t('scale.name')}
               </Button>
             }
           />
@@ -206,17 +207,14 @@ export default function EmployeeProfile() {
                       >
                         <div className="pt-3 pb-1">
                           {skill.evidence.length === 0 ? (
-                            <p className="text-micro text-haze">
-                              ระดับนี้ยังไม่มีหลักฐานบันทึกไว้ — ระดับต่ำกว่า 3.0 ไม่บังคับให้มีหลักฐาน
-                              แต่การไม่มีหลักฐานเองก็เป็นข้อมูลที่ควรรู้
-                            </p>
+                            <p className="text-micro text-haze">{t('profile.skills.noEvidence')}</p>
                           ) : (
                             <ul className="space-y-1.5">
                               {skill.evidence.map((evidence, i) => (
                                 <li key={i} className="flex items-start gap-2 text-micro">
                                   <Badge tone="muted">{evidence.kind}</Badge>
                                   <span className="text-haze">
-                                    {evidence.detail}
+                                    {text(evidence.detail)}
                                     <span className="num"> · {evidence.year}</span>
                                   </span>
                                 </li>
@@ -235,19 +233,19 @@ export default function EmployeeProfile() {
 
         <div className="space-y-4 lg:col-span-2">
           <Card tone="flat">
-            <CardHeader title="Skill profile" hint={`เส้นประ = ระดับที่ ${role.title} ต้องการ`} />
+            <CardHeader title={t('profile.radar.title')} hint={t('profile.radar.hint', { role: role.title })} />
             <div className="px-2 pb-3">
-              <SkillRadarChart data={radarData} />
+              <SkillRadarChart data={radarData} currentLabel={t('profile.radar.current')} targetLabel={t('profile.radar.target')} />
             </div>
           </Card>
 
           <Card tone="flat">
             <CardHeader
               title="Promotion Readiness"
-              hint={`เป้าหมายอาชีพ: ${role.title}`}
+              hint={t('profile.readiness.hint', { role: role.title })}
               right={
                 <Button variant="ghost" onClick={() => setReadinessOpen(true)}>
-                  ดูวิธีคิด
+                  {t('profile.readiness.how')}
                 </Button>
               }
             />
@@ -267,7 +265,7 @@ export default function EmployeeProfile() {
                 />
               </div>
 
-              <p className="mt-4 text-micro text-haze">ยังขาด</p>
+              <p className="mt-4 text-micro text-haze">{t('profile.readiness.missing')}</p>
               {readiness && readiness.missingSkills.length > 0 ? (
                 <ul className="mt-1.5 space-y-1.5">
                   {readiness.missingSkills.map((item) => (
@@ -280,7 +278,7 @@ export default function EmployeeProfile() {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-1 text-small">ผ่านเกณฑ์ skill ครบทุกข้อของตำแหน่งเป้าหมายแล้ว</p>
+                <p className="mt-1 text-small">{t('profile.readiness.complete')}</p>
               )}
             </div>
           </Card>
@@ -288,10 +286,7 @@ export default function EmployeeProfile() {
       </div>
 
       <Card tone="flat">
-        <CardHeader
-          title="Skill growth"
-          hint="ระดับ skill หลัก 3 ตัว ย้อนหลัง 6 เดือน (มี.ค.–ส.ค. 2026)"
-        />
+        <CardHeader title={t('profile.growth.title')} hint={t('profile.growth.hint')} />
         <div className="px-3 pb-4">
           <SkillHistoryLineChart data={historySeries.data} series={historySeries.series} />
         </div>
@@ -301,7 +296,7 @@ export default function EmployeeProfile() {
         open={legendOpen}
         onClose={() => setLegendOpen(false)}
         title="Skill Level Scale"
-        subtitle="ระดับ 0–5 หมายถึงอะไร ใช้เกณฑ์เดียวกันทั้งระบบ"
+        subtitle={t('profile.scale.subtitle')}
       >
         <SkillLevelLegend />
       </SlidePanel>
@@ -310,7 +305,7 @@ export default function EmployeeProfile() {
         open={readinessOpen}
         onClose={() => setReadinessOpen(false)}
         title="Promotion Readiness"
-        subtitle={`${employee.name} → ${role.title}`}
+        subtitle={`${name(employee)} → ${role.title}`}
       >
         {readiness ? (
           <>
@@ -320,9 +315,9 @@ export default function EmployeeProfile() {
               totalLabel="Promotion Readiness"
             />
             <div className="mt-5 rounded-lg border border-line bg-panel-raised/60 p-3.5">
-              <p className="text-micro text-haze">ตำแหน่งเป้าหมายต้องการอะไรบ้าง</p>
+              <p className="text-micro text-haze">{t('profile.readiness.roleNeeds')}</p>
               <p className="mt-1 text-small leading-relaxed">
-                <NumericText>{role.rationale}</NumericText>
+                <NumericText>{text(role.rationale)}</NumericText>
               </p>
               <ul className="mt-3 space-y-1.5">
                 {gap?.gaps.map((item) => (
@@ -339,7 +334,7 @@ export default function EmployeeProfile() {
               </ul>
             </div>
             <p className="mt-4 text-micro leading-relaxed text-haze">
-              ตัวเลขนี้เป็นข้อมูลประกอบการตัดสินใจ ไม่ใช่การอนุมัติเลื่อนตำแหน่ง — การตัดสินใจยังเป็นของหัวหน้าและ HR
+              {t('profile.readiness.caveat')}
             </p>
           </>
         ) : null}

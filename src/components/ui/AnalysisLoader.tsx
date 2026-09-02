@@ -5,8 +5,8 @@ import { NumericText } from './NumericText'
 
 /**
  * §5 — the loading state for anything described as an analysis. It names what
- * is being analysed rather than spinning: "กำลังวิเคราะห์ Skill Graph ของ
- * พนักงาน 14 คน".
+ * is being analysed rather than spinning: "Analysing the Skill Graph of
+ * 14 employees" (or the Thai equivalent).
  */
 export function AnalysisLoader({ message, rows = 3 }: { message: string; rows?: number }) {
   const reduced = useReducedMotion()
