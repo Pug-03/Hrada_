@@ -123,3 +123,105 @@ export function layoutConstellation(
 
   return { ...VIEW, nodes, edges, departments }
 }
+
+// ─────────────────────────────────────────────────────────── interaction ──
+
+/**
+ * How close the cursor must get, in view units, before a node leans toward it.
+ * The viewBox is 900×520, so this is roughly the radius of one department
+ * cluster — near enough that the pull reads as local, not as the whole canvas
+ * swaying.
+ */
+export const MAGNET_RADIUS = 140
+
+/**
+ * Ceiling on how far a node may travel. Nodes are separated by at least
+ * `a.r + b.r + 22` during layout, so a displacement of 9 cannot make two of
+ * them touch even when they lean toward each other from opposite sides, and it
+ * is small enough that a person never appears to leave their department.
+ */
+export const MAGNET_MAX_PULL = 9
+
+export interface Vec2 {
+  dx: number
+  dy: number
+}
+
+const NO_PULL: Vec2 = { dx: 0, dy: 0 }
+
+/**
+ * How far one node should drift toward the cursor. Pure, so the guarantee that
+ * displacement stays inside the safe bound is a test rather than a claim.
+ *
+ * Falloff is linear from full strength at the node to nothing at the radius,
+ * which keeps the effect legible: the node under the cursor clearly leads, and
+ * its neighbours trail off rather than all moving together.
+ */
+export function magnetOffset(
+  node: { x: number; y: number },
+  pointerX: number,
+  pointerY: number,
+  strength = 1,
+  radius = MAGNET_RADIUS,
+  maxPull = MAGNET_MAX_PULL,
+): Vec2 {
+  if (!Number.isFinite(pointerX) || !Number.isFinite(pointerY)) return NO_PULL
+  if (strength <= 0) return NO_PULL
+
+  const dx = pointerX - node.x
+  const dy = pointerY - node.y
+  const distance = Math.hypot(dx, dy)
+  if (distance >= radius || distance < 0.0001) return NO_PULL
+
+  const falloff = 1 - distance / radius
+  // Never overshoot the cursor itself when it is almost on top of the node.
+  const pull = Math.min(maxPull * falloff * strength, distance)
+  return { dx: (dx / distance) * pull, dy: (dy / distance) * pull }
+}
+
+/** Ids of everyone one edge away from a node. */
+export function neighbourIds(
+  edges: { a: string; b: string }[],
+  nodeId: string,
+): Set<string> {
+  const ids = new Set<string>()
+  for (const edge of edges) {
+    if (edge.a === nodeId) ids.add(edge.b)
+    else if (edge.b === nodeId) ids.add(edge.a)
+  }
+  return ids
+}
+
+export function edgeTouches(edge: { a: string; b: string }, nodeId: string): boolean {
+  return edge.a === nodeId || edge.b === nodeId
+}
+
+/**
+ * What the hover state does to one node's opacity.
+ *
+ * Dimming is the point of the interaction: with 14 people and every shared
+ * skill drawn, the picture is dense enough that highlighting alone does not
+ * separate a person's connections from the rest of the field.
+ */
+export function nodeEmphasis(
+  nodeId: string,
+  hoveredId: string | null,
+  neighbours: Set<string> | null,
+): { opacity: number; related: boolean } {
+  if (!hoveredId) return { opacity: 1, related: false }
+  const related = nodeId === hoveredId || Boolean(neighbours?.has(nodeId))
+  return { opacity: related ? 1 : DIMMED_OPACITY, related }
+}
+
+/** Base opacity for an edge, and what hovering does to it. */
+export function edgeEmphasis(
+  edge: { a: string; b: string },
+  strength: number,
+  hoveredId: string | null,
+): number {
+  const base = 0.06 + strength * 0.12
+  if (!hoveredId) return base
+  return edgeTouches(edge, hoveredId) ? 0.55 : base * DIMMED_OPACITY
+}
+
+export const DIMMED_OPACITY = 0.3

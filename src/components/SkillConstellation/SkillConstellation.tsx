@@ -1,9 +1,26 @@
-import { motion, useReducedMotion } from 'framer-motion'
-import { useMemo, useState } from 'react'
+import {
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTime,
+  useTransform,
+  type MotionValue,
+} from 'framer-motion'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import type { Employee } from '@/data/types'
-import { layoutConstellation, type ConstellationNode } from '@/lib/constellation'
+import {
+  edgeEmphasis,
+  edgeTouches,
+  layoutConstellation,
+  magnetOffset,
+  neighbourIds,
+  nodeEmphasis,
+  type ConstellationLayout,
+  type ConstellationNode,
+} from '@/lib/constellation'
 import { colors, departmentHalo, departmentSwatch, motion as motionTokens } from '@/lib/theme'
 
 /**
@@ -14,7 +31,35 @@ import { colors, departmentHalo, departmentSwatch, motion as motionTokens } from
  * This is the one place in the product that spends any visual boldness (§3.3),
  * and the one orchestrated entrance §5 allows — clusters fade in department by
  * department on first paint and never again.
+ *
+ * Everything below the entrance is a response to the pointer, which is the
+ * other half of what §5 permits:
+ *   — hovering lifts a node, glows it, brightens what it connects to, and
+ *     drops everything unrelated to 30% so one person's reach is readable;
+ *   — nodes within MAGNET_RADIUS lean toward the cursor, which makes the field
+ *     feel like a material rather than a picture;
+ *   — a light travels each connected edge while a node is held, showing which
+ *     way the relationship is being read;
+ *   — clicking rings the node before the layoutId hand-off to the profile.
+ *
+ * Under prefers-reduced-motion every one of those is off. The hover highlight
+ * and the dimming stay, because they carry meaning rather than delight, and
+ * they are applied without animation.
  */
+
+/** One pointer position shared by every node and edge, in view units. */
+interface Pointer {
+  x: MotionValue<number>
+  y: MotionValue<number>
+  strength: MotionValue<number>
+}
+
+const POINTER_SPRING = { stiffness: 260, damping: 30, mass: 0.4 }
+const STRENGTH_SPRING = { stiffness: 180, damping: 26 }
+const HOVER_SPRING = { type: 'spring' as const, stiffness: 340, damping: 18 }
+const PULSE_PERIOD_MS = 1500
+const RIPPLE_MS = 260
+
 export function SkillConstellation({
   employees,
   onSelect,
@@ -24,114 +69,145 @@ export function SkillConstellation({
 }) {
   const navigate = useNavigate()
   const reduced = useReducedMotion()
+  const svgRef = useRef<SVGSVGElement | null>(null)
   const [hovered, setHovered] = useState<ConstellationNode | null>(null)
+  const [ripple, setRipple] = useState<ConstellationNode | null>(null)
 
   const layout = useMemo(() => layoutConstellation(employees), [employees])
   const maxShared = Math.max(1, ...layout.edges.map((e) => e.sharedSkills.length))
+  const neighbours = useMemo(
+    () => (hovered ? neighbourIds(layout.edges, hovered.id) : null),
+    [hovered, layout.edges],
+  )
 
-  const open = (node: ConstellationNode) => {
-    if (onSelect) onSelect(node.employee)
-    else navigate(`/employees/${node.employee.id}`)
+  // A single springed pointer feeds every node and edge. Springing here rather
+  // than per node keeps the count at two regardless of how many people are on
+  // screen, and guarantees the whole field moves as one coherent surface.
+  const rawX = useMotionValue(0)
+  const rawY = useMotionValue(0)
+  const rawStrength = useMotionValue(0)
+  const pointer: Pointer = {
+    x: useSpring(rawX, POINTER_SPRING),
+    y: useSpring(rawY, POINTER_SPRING),
+    // Strength decays to zero on leave, so nodes ease home instead of being
+    // dragged along whatever path the cursor took on its way out.
+    strength: useSpring(rawStrength, STRENGTH_SPRING),
   }
+
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      if (reduced) return
+      const rect = svgRef.current?.getBoundingClientRect()
+      if (!rect || rect.width === 0 || rect.height === 0) return
+      rawX.set(((event.clientX - rect.left) / rect.width) * layout.width)
+      rawY.set(((event.clientY - rect.top) / rect.height) * layout.height)
+      rawStrength.set(1)
+    },
+    [reduced, rawX, rawY, rawStrength, layout.width, layout.height],
+  )
+
+  const onPointerLeave = useCallback(() => {
+    rawStrength.set(0)
+    setHovered(null)
+  }, [rawStrength])
+
+  const open = useCallback(
+    (node: ConstellationNode) => {
+      if (onSelect) onSelect(node.employee)
+      else navigate(`/employees/${node.employee.id}`)
+    },
+    [onSelect, navigate],
+  )
+
+  // The ring plays first, then the node hands off to the profile. Under
+  // reduced motion there is no ring and no wait.
+  const activate = useCallback(
+    (node: ConstellationNode) => {
+      if (reduced) {
+        open(node)
+        return
+      }
+      setRipple(node)
+      window.setTimeout(() => {
+        setRipple(null)
+        open(node)
+      }, RIPPLE_MS)
+    },
+    [reduced, open],
+  )
 
   return (
     <div className="relative">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${layout.width} ${layout.height}`}
         className="w-full"
         role="img"
         aria-label={`Skill Constellation ของพนักงาน ${employees.length} คน`}
+        onPointerMove={onPointerMove}
+        onPointerLeave={onPointerLeave}
       >
         <defs>
           <radialGradient id="node-core" cx="50%" cy="50%">
             <stop offset="0%" stopColor={colors.sky} stopOpacity={0.6} />
             <stop offset="100%" stopColor={colors.sky} />
           </radialGradient>
+          {/* Hover glow. Sky only — the palette stays closed (§3.1). */}
+          <filter id="node-glow" x="-120%" y="-120%" width="340%" height="340%">
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="5"
+              floodColor={colors.sky}
+              floodOpacity="0.85"
+            />
+          </filter>
         </defs>
 
         {/* Edges first, so nodes always sit above their connections. */}
         <g>
-          {layout.edges.map((edge) => {
-            const strength = edge.sharedSkills.length / maxShared
-            const touched =
-              hovered && (hovered.id === edge.from.id || hovered.id === edge.to.id)
-            return (
-              <motion.line
-                key={`${edge.a}-${edge.b}`}
-                x1={edge.from.x}
-                y1={edge.from.y}
-                x2={edge.to.x}
-                y2={edge.to.y}
-                stroke={colors.sky}
-                strokeWidth={0.4 + strength * 1.7}
-                initial={reduced ? { opacity: 0.14 } : { opacity: 0 }}
-                animate={{ opacity: touched ? 0.55 : 0.06 + strength * 0.12 }}
-                transition={{ duration: reduced ? 0.12 : 0.5, delay: reduced ? 0 : 0.35 }}
-              />
-            )
-          })}
+          {layout.edges.map((edge) => (
+            <Edge
+              key={`${edge.a}-${edge.b}`}
+              edge={edge}
+              strength={edge.sharedSkills.length / maxShared}
+              hoveredId={hovered?.id ?? null}
+              pointer={pointer}
+              reduced={Boolean(reduced)}
+            />
+          ))}
         </g>
 
-        {layout.nodes.map((node) => {
-          const delay = reduced
-            ? 0
-            : layout.departments.indexOf(node.department) * motionTokens.constellationStagger
-          const active = hovered?.id === node.id
-          return (
-            <motion.g
-              key={node.id}
-              initial={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.4 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                delay,
-                duration: reduced ? 0.12 : 0.5,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              style={{ transformOrigin: `${node.x}px ${node.y}px`, cursor: 'pointer' }}
-              onMouseEnter={() => setHovered(node)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={() => open(node)}
-              tabIndex={0}
-              role="button"
-              aria-label={`${node.employee.name} — ${node.employee.title}`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') open(node)
-              }}
-            >
-              {/* Ambient pulse for anyone over 85% committed (§4). */}
-              {node.overloaded ? (
-                <motion.circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={node.r + 6}
-                  fill="none"
-                  stroke={colors.warn}
-                  strokeWidth={1}
-                  initial={{ opacity: 0.5, scale: 1 }}
-                  animate={reduced ? { opacity: 0.35 } : { opacity: [0.45, 0.08, 0.45], scale: [1, 1.18, 1] }}
-                  transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{ transformOrigin: `${node.x}px ${node.y}px` }}
+        {/* Energy travelling outward along whatever the held node touches. */}
+        {hovered && !reduced ? (
+          <g aria-hidden data-constellation-pulses>
+            {layout.edges
+              .filter((edge) => edgeTouches(edge, hovered.id))
+              .map((edge) => (
+                <EdgePulse
+                  key={`pulse-${edge.a}-${edge.b}`}
+                  from={edge.from.id === hovered.id ? edge.from : edge.to}
+                  to={edge.from.id === hovered.id ? edge.to : edge.from}
+                  pointer={pointer}
                 />
-              ) : null}
+              ))}
+          </g>
+        ) : null}
 
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r={node.r + (active ? 5 : 3)}
-                fill={departmentHalo(node.department)}
-                opacity={active ? 2 : 1}
-              />
-              <motion.circle
-                layoutId={`employee-node-${node.employee.id}`}
-                cx={node.x}
-                cy={node.y}
-                r={node.r}
-                fill="url(#node-core)"
-                opacity={0.45 + node.intensity * 0.55}
-              />
-            </motion.g>
-          )
-        })}
+        {layout.nodes.map((node) => (
+          <Node
+            key={node.id}
+            node={node}
+            layout={layout}
+            hoveredId={hovered?.id ?? null}
+            neighbours={neighbours}
+            rippling={ripple?.id === node.id}
+            pointer={pointer}
+            reduced={Boolean(reduced)}
+            onHover={setHovered}
+            onActivate={activate}
+          />
+        ))}
       </svg>
 
       {hovered ? (
@@ -169,5 +245,211 @@ export function SkillConstellation({
         </span>
       </div>
     </div>
+  )
+}
+
+/** Drift for one point, derived from the shared pointer. */
+function useDrift(point: { x: number; y: number }, pointer: Pointer, reduced: boolean) {
+  const dx = useTransform<number, number>(
+    [pointer.x, pointer.y, pointer.strength],
+    ([px, py, s]) => (reduced ? 0 : magnetOffset(point, px, py, s).dx),
+  )
+  const dy = useTransform<number, number>(
+    [pointer.x, pointer.y, pointer.strength],
+    ([px, py, s]) => (reduced ? 0 : magnetOffset(point, px, py, s).dy),
+  )
+  return { dx, dy }
+}
+
+function Edge({
+  edge,
+  strength,
+  hoveredId,
+  pointer,
+  reduced,
+}: {
+  edge: ConstellationLayout['edges'][number]
+  strength: number
+  hoveredId: string | null
+  pointer: Pointer
+  reduced: boolean
+}) {
+  const from = useDrift(edge.from, pointer, reduced)
+  const to = useDrift(edge.to, pointer, reduced)
+
+  // Endpoints track the nodes they belong to, so a drifting node never leaves
+  // its lines behind.
+  const x1 = useTransform(from.dx, (d) => edge.from.x + d)
+  const y1 = useTransform(from.dy, (d) => edge.from.y + d)
+  const x2 = useTransform(to.dx, (d) => edge.to.x + d)
+  const y2 = useTransform(to.dy, (d) => edge.to.y + d)
+
+  return (
+    <motion.line
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+      stroke={colors.sky}
+      strokeWidth={0.4 + strength * 1.7}
+      initial={reduced ? { opacity: 0.14 } : { opacity: 0 }}
+      animate={{ opacity: edgeEmphasis(edge, strength, hoveredId) }}
+      transition={{ duration: reduced ? 0.12 : 0.28, delay: reduced ? 0 : 0.35 }}
+    />
+  )
+}
+
+/**
+ * A light running from the held node toward one neighbour. Driven by the
+ * document clock rather than a per-edge animation, so every pulse in the
+ * field is in phase and mounting one costs nothing.
+ */
+function EdgePulse({
+  from,
+  to,
+  pointer,
+}: {
+  from: ConstellationNode
+  to: ConstellationNode
+  pointer: Pointer
+}) {
+  const time = useTime()
+  const progress = useTransform(time, (t) => ((t % PULSE_PERIOD_MS) / PULSE_PERIOD_MS))
+  const fromDrift = useDrift(from, pointer, false)
+  const toDrift = useDrift(to, pointer, false)
+
+  const cx = useTransform<number, number>(
+    [progress, fromDrift.dx, toDrift.dx],
+    ([p, fd, td]) => from.x + fd + (to.x + td - (from.x + fd)) * p,
+  )
+  const cy = useTransform<number, number>(
+    [progress, fromDrift.dy, toDrift.dy],
+    ([p, fd, td]) => from.y + fd + (to.y + td - (from.y + fd)) * p,
+  )
+  // Fades in as it leaves and out as it arrives, so nothing pops at either end.
+  const opacity = useTransform(progress, [0, 0.15, 0.85, 1], [0, 0.9, 0.9, 0])
+
+  return <motion.circle cx={cx} cy={cy} r={1.8} fill={colors.sky} style={{ opacity }} />
+}
+
+function Node({
+  node,
+  layout,
+  hoveredId,
+  neighbours,
+  rippling,
+  pointer,
+  reduced,
+  onHover,
+  onActivate,
+}: {
+  node: ConstellationNode
+  layout: ConstellationLayout
+  hoveredId: string | null
+  neighbours: Set<string> | null
+  rippling: boolean
+  pointer: Pointer
+  reduced: boolean
+  onHover: (node: ConstellationNode | null) => void
+  onActivate: (node: ConstellationNode) => void
+}) {
+  const { dx, dy } = useDrift(node, pointer, reduced)
+  const active = hoveredId === node.id
+  const { opacity } = nodeEmphasis(node.id, hoveredId, neighbours)
+  const delay = reduced
+    ? 0
+    : layout.departments.indexOf(node.department) * motionTokens.constellationStagger
+
+  return (
+    <motion.g
+      initial={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.4 }}
+      animate={{ opacity, scale: active && !reduced ? 1.2 : 1 }}
+      transition={{
+        opacity: { delay, duration: reduced ? 0.12 : 0.5, ease: [0.16, 1, 0.3, 1] },
+        scale: active && !reduced ? HOVER_SPRING : { delay, duration: reduced ? 0.12 : 0.5 },
+      }}
+      style={{
+        x: dx,
+        y: dy,
+        transformOrigin: `${node.x}px ${node.y}px`,
+        cursor: 'pointer',
+      }}
+      data-node-id={node.id}
+      onMouseEnter={() => onHover(node)}
+      onMouseLeave={() => onHover(null)}
+      onClick={() => onActivate(node)}
+      tabIndex={0}
+      role="button"
+      aria-label={`${node.employee.name} — ${node.employee.title}`}
+      onFocus={() => onHover(node)}
+      onBlur={() => onHover(null)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onActivate(node)
+      }}
+    >
+      {/* Ambient pulse for anyone over 85% committed (§4). */}
+      {node.overloaded ? (
+        <motion.circle
+          cx={node.x}
+          cy={node.y}
+          r={node.r + 6}
+          fill="none"
+          stroke={colors.warn}
+          strokeWidth={1}
+          initial={{ opacity: 0.5, scale: 1 }}
+          animate={reduced ? { opacity: 0.35 } : { opacity: [0.45, 0.08, 0.45], scale: [1, 1.18, 1] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ transformOrigin: `${node.x}px ${node.y}px` }}
+        />
+      ) : null}
+
+      {/* Click ring, played before the hand-off to the profile. */}
+      {rippling ? (
+        <motion.circle
+          cx={node.x}
+          cy={node.y}
+          r={node.r}
+          fill="none"
+          stroke={colors.sky}
+          strokeWidth={1.5}
+          initial={{ opacity: 0.7, scale: 1 }}
+          animate={{ opacity: 0, scale: 2.6 }}
+          transition={{ duration: RIPPLE_MS / 1000, ease: 'easeOut' }}
+          style={{ transformOrigin: `${node.x}px ${node.y}px` }}
+        />
+      ) : null}
+
+      <circle
+        cx={node.x}
+        cy={node.y}
+        r={node.r + (active ? 5 : 3)}
+        fill={departmentHalo(node.department)}
+      />
+
+      {/*
+        The glow sits on its own circle rather than on the core. The core
+        carries the layoutId that flies into the profile, and an SVG filter
+        changes the box that projection measures.
+      */}
+      {active && !reduced ? (
+        <circle
+          cx={node.x}
+          cy={node.y}
+          r={node.r * 0.9}
+          fill={colors.sky}
+          opacity={0.85}
+          filter="url(#node-glow)"
+        />
+      ) : null}
+
+      <motion.circle
+        layoutId={`employee-node-${node.employee.id}`}
+        cx={node.x}
+        cy={node.y}
+        r={node.r}
+        fill="url(#node-core)"
+        opacity={0.45 + node.intensity * 0.55}
+      />
+    </motion.g>
   )
 }

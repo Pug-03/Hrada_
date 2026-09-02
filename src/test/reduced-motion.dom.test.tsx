@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -78,6 +78,32 @@ describe('reduced motion', () => {
       expect(consoleOutput, `console output on ${path}`).toEqual([])
     })
   }
+
+  it('keeps the constellation hover highlight but sends no edge pulses', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <App />
+      </MemoryRouter>,
+    )
+    const node = container.querySelector('[data-node-id="emp-02"]')!
+    fireEvent.mouseEnter(node)
+
+    // The meaning survives — hovering still says who this is …
+    expect(screen.getByText('Data Lead')).toBeTruthy()
+    // … the decoration does not.
+    expect(container.querySelector('[data-constellation-pulses]')).toBeNull()
+  })
+
+  it('opens a profile on click with no ring to wait for', async () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <App />
+      </MemoryRouter>,
+    )
+    fireEvent.click(container.querySelector('[data-node-id="emp-02"]')!)
+    // No RIPPLE_MS wait to sit through: the only delay is React's own.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'ปิยะ ส.' })).toBeTruthy())
+  })
 
   it('strips non-essential motion in the stylesheet as a backstop', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
