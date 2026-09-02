@@ -7,7 +7,7 @@ import {
   useTransform,
   type MotionValue,
 } from 'framer-motion'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import type { Employee } from '@/data/types'
@@ -120,6 +120,25 @@ export function SkillConstellation({
    */
   const [tilting, setTilting] = useState(true)
 
+  // The tooltip's rendered position, in the svg's own on-screen pixels. Kept
+  // in state and updated only on mount/resize (never per pointer frame) so
+  // its placement can use `transform` instead of `left`/`top` — the latter
+  // is a layout-triggering property, and hovering fast across a dense
+  // cluster used to reflow this element on every hover-target change.
+  const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
+  useLayoutEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const measure = () => {
+      const rect = svg.getBoundingClientRect()
+      setSvgSize({ width: rect.width, height: rect.height })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(svg)
+    return () => observer.disconnect()
+  }, [])
+
   const layout = useMemo(() => layoutConstellation(employees), [employees])
   const stars = useMemo(() => generateStarfield(layout.width, layout.height), [layout.width, layout.height])
   const maxShared = Math.max(1, ...layout.edges.map((e) => e.sharedSkills.length))
@@ -134,13 +153,20 @@ export function SkillConstellation({
   const rawX = useMotionValue(0)
   const rawY = useMotionValue(0)
   const rawStrength = useMotionValue(0)
-  const pointer: Pointer = {
-    x: useSpring(rawX, POINTER_SPRING),
-    y: useSpring(rawY, POINTER_SPRING),
-    // Strength decays to zero on leave, so nodes ease home instead of being
-    // dragged along whatever path the cursor took on its way out.
-    strength: useSpring(rawStrength, STRENGTH_SPRING),
-  }
+  const pointerX = useSpring(rawX, POINTER_SPRING)
+  const pointerY = useSpring(rawY, POINTER_SPRING)
+  // Strength decays to zero on leave, so nodes ease home instead of being
+  // dragged along whatever path the cursor took on its way out.
+  const pointerStrength = useSpring(rawStrength, STRENGTH_SPRING)
+  // The three motion values above are each stable across renders, but a
+  // fresh `{ x, y, strength }` literal every render is not — and Node/Edge
+  // are memoized below specifically so a hover change only re-renders the
+  // handful of them actually affected, which only works if the props they
+  // don't care about (this one included) keep the same reference.
+  const pointer: Pointer = useMemo(
+    () => ({ x: pointerX, y: pointerY, strength: pointerStrength }),
+    [pointerX, pointerY, pointerStrength],
+  )
 
   // Parallax, driven by the same pointer but springed separately so the canvas
   // settles a little behind the nodes rather than with them.
@@ -164,13 +190,35 @@ export function SkillConstellation({
   const clock = useTime()
   const twinkleClock = useTransform(clock, (t) => Math.round(t / TWINKLE_STEP_MS) * TWINKLE_STEP_MS)
 
-  const onPointerMove = useCallback(
-    (event: React.PointerEvent<SVGSVGElement>) => {
-      if (reduced) return
-      const rect = svgRef.current?.getBoundingClientRect()
-      if (!rect || rect.width === 0 || rect.height === 0) return
-      const fractionX = (event.clientX - rect.left) / rect.width
-      const fractionY = (event.clientY - rect.top) / rect.height
+  /**
+   * One native listener feeds drift, tilt and the magnet strength together —
+   * the single shared pointer source every one of those effects reads from.
+   * It is registered directly (not as a React onPointerMove prop) for two
+   * reasons: `{ passive: true }` needs a real DOM listener, and the handler
+   * itself does no work beyond stashing the latest coordinates — the actual
+   * rect read and the five motion-value writes happen at most once per
+   * animation frame, in a rAF callback, so a high-poll-rate mouse dispatching
+   * several pointermove events between paints costs one frame of work, not
+   * several. (The springs each of these feeds already decouple *downstream*
+   * recomputation from raw event rate — magnetOffset and the edge curves
+   * only re-run once per frame regardless — but the handler itself used to
+   * still run, and read layout.width/height and getBoundingClientRect, once
+   * per raw event. This removes that.)
+   */
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg || reduced) return
+
+    let rafId = 0
+    let pending: { clientX: number; clientY: number } | null = null
+
+    const applyPending = () => {
+      rafId = 0
+      if (!pending) return
+      const rect = svg.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) return
+      const fractionX = (pending.clientX - rect.left) / rect.width
+      const fractionY = (pending.clientY - rect.top) / rect.height
       rawX.set(fractionX * layout.width)
       rawY.set(fractionY * layout.height)
       rawStrength.set(1)
@@ -178,16 +226,31 @@ export function SkillConstellation({
       // way a physical surface would tip under a finger.
       rawTiltY.set((fractionX - 0.5) * 2 * TILT_MAX_DEG)
       rawTiltX.set(-(fractionY - 0.5) * 2 * TILT_MAX_DEG)
-    },
-    [reduced, rawX, rawY, rawStrength, rawTiltX, rawTiltY, layout.width, layout.height],
-  )
+    }
 
-  const onPointerLeave = useCallback(() => {
-    rawStrength.set(0)
-    rawTiltX.set(0)
-    rawTiltY.set(0)
-    setHovered(null)
-  }, [rawStrength, rawTiltX, rawTiltY])
+    const onMove = (event: PointerEvent) => {
+      pending = { clientX: event.clientX, clientY: event.clientY }
+      if (!rafId) rafId = requestAnimationFrame(applyPending)
+    }
+
+    const onLeave = () => {
+      pending = null
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = 0
+      rawStrength.set(0)
+      rawTiltX.set(0)
+      rawTiltY.set(0)
+      setHovered(null)
+    }
+
+    svg.addEventListener('pointermove', onMove, { passive: true })
+    svg.addEventListener('pointerleave', onLeave, { passive: true })
+    return () => {
+      svg.removeEventListener('pointermove', onMove)
+      svg.removeEventListener('pointerleave', onLeave)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [reduced, rawX, rawY, rawStrength, rawTiltX, rawTiltY, layout.width, layout.height])
 
   const open = useCallback(
     (node: ConstellationNode) => {
@@ -231,7 +294,7 @@ export function SkillConstellation({
         data-tilt={tiltActive ? 'on' : 'off'}
         style={
           tiltActive
-            ? { rotateX: tiltX, rotateY: tiltY, transformPerspective: 1400 }
+            ? { rotateX: tiltX, rotateY: tiltY, transformPerspective: 1400, willChange: 'transform' }
             : { rotateX: 0, rotateY: 0 }
         }
       >
@@ -241,8 +304,6 @@ export function SkillConstellation({
           className="w-full"
           role="img"
           aria-label={t('constellation.label', { count: employees.length })}
-          onPointerMove={onPointerMove}
-          onPointerLeave={onPointerLeave}
         >
           <defs>
             {/*
@@ -255,20 +316,25 @@ export function SkillConstellation({
               <stop offset="35%" stopColor={colors.sky} stopOpacity={0.95} />
               <stop offset="100%" stopColor={colors.sky} stopOpacity={0.55} />
             </radialGradient>
-            {/* Always-on ambient glow — soft at rest, in §4's warn colour for the overload ring. */}
-            <filter id="node-glow-idle" x="-160%" y="-160%" width="420%" height="420%">
-              <feDropShadow dx="0" dy="0" stdDeviation="2.4" floodColor={colors.sky} floodOpacity="0.9" />
-            </filter>
-            {/* Hover glow. Sky only — the palette stays closed (§3.1). */}
-            <filter id="node-glow" x="-160%" y="-160%" width="420%" height="420%">
-              <feDropShadow
-                dx="0"
-                dy="0"
-                stdDeviation="5"
-                floodColor={colors.sky}
-                floodOpacity="0.85"
-              />
-            </filter>
+            {/*
+              The glow used to be a live feDropShadow filter, recomputed by
+              the renderer on every opacity or ancestor-transform change —
+              expensive per element, and every node carries one running
+              continuously for the idle twinkle. A blurred-looking circle
+              painted with a radial gradient produces the same halo with no
+              filter pass at all: the "blur" is baked into the gradient
+              stops once, and animating this circle's opacity or letting its
+              parent group translate during drift are both compositor-only
+              operations from here on. One shared gradient, since the visual
+              size difference between the idle and hover glow comes from the
+              circle's own radius (percentage stops scale with it), not from
+              a second gradient definition.
+            */}
+            <radialGradient id="node-glow-gradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={colors.sky} stopOpacity="1" />
+              <stop offset="30%" stopColor={colors.sky} stopOpacity="0.5" />
+              <stop offset="100%" stopColor={colors.sky} stopOpacity="0" />
+            </radialGradient>
           </defs>
 
           {/*
@@ -286,16 +352,19 @@ export function SkillConstellation({
 
           {/* Edges first, so nodes always sit above their connections. */}
           <g>
-            {layout.edges.map((edge) => (
-              <Edge
-                key={`${edge.a}-${edge.b}`}
-                edge={edge}
-                strength={edge.sharedSkills.length / maxShared}
-                hoveredId={hovered?.id ?? null}
-                pointer={pointer}
-                reduced={Boolean(reduced)}
-              />
-            ))}
+            {layout.edges.map((edge) => {
+              const strength = edge.sharedSkills.length / maxShared
+              return (
+                <Edge
+                  key={`${edge.a}-${edge.b}`}
+                  edge={edge}
+                  strength={strength}
+                  emphasis={edgeEmphasis(edge, strength, hovered?.id ?? null)}
+                  pointer={pointer}
+                  reduced={Boolean(reduced)}
+                />
+              )
+            })}
           </g>
 
           {/* Energy travelling outward along whatever the held node touches. */}
@@ -315,32 +384,35 @@ export function SkillConstellation({
             </g>
           ) : null}
 
-          {layout.nodes.map((node) => (
-            <Node
-              key={node.id}
-              node={node}
-              layout={layout}
-              hoveredId={hovered?.id ?? null}
-              neighbours={neighbours}
-              rippling={ripple?.id === node.id}
-              pointer={pointer}
-              reduced={Boolean(reduced)}
-              displayName={name(node.employee)}
-              twinkleClock={twinkleClock}
-              onHover={setHovered}
-              onActivate={activate}
-            />
-          ))}
+          {layout.nodes.map((node) => {
+            const emphasis = nodeEmphasis(node.id, hovered?.id ?? null, neighbours)
+            return (
+              <Node
+                key={node.id}
+                node={node}
+                layout={layout}
+                active={hovered?.id === node.id}
+                opacity={emphasis.opacity}
+                rippling={ripple?.id === node.id}
+                pointer={pointer}
+                reduced={Boolean(reduced)}
+                displayName={name(node.employee)}
+                twinkleClock={twinkleClock}
+                onHover={setHovered}
+                onActivate={activate}
+              />
+            )
+          })}
         </svg>
       </motion.div>
 
       {hovered ? (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-micro shadow-lg shadow-black/50"
+          className="pointer-events-none absolute z-10 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-micro shadow-lg shadow-black/50"
           style={{
-            left: `${(hovered.x / layout.width) * 100}%`,
-            top: `${(hovered.y / layout.height) * 100}%`,
-            marginTop: -10,
+            transform: `translate(-50%, -100%) translate(${(hovered.x / layout.width) * svgSize.width}px, ${
+              (hovered.y / layout.height) * svgSize.height - 10
+            }px)`,
           }}
         >
           <p className="text-small">{name(hovered.employee)}</p>
@@ -393,16 +465,25 @@ function useDrift(point: { x: number; y: number }, pointer: Pointer, reduced: bo
   return { dx, dy }
 }
 
-function Edge({
+/**
+ * Memoized so a hover change only re-renders the (typically small) number of
+ * edges whose emphasis actually flips, instead of every edge in the graph.
+ * `emphasis` is computed once in the parent's map rather than in here, from
+ * `hoveredId` — a value that changes on every hover transition for every
+ * edge, which would defeat memoization if passed straight through, since
+ * most edges' *computed* opacity doesn't actually change even though the
+ * raw hoveredId prop would look different across every render.
+ */
+const Edge = memo(function Edge({
   edge,
   strength,
-  hoveredId,
+  emphasis,
   pointer,
   reduced,
 }: {
   edge: ConstellationLayout['edges'][number]
   strength: number
-  hoveredId: string | null
+  emphasis: number
   pointer: Pointer
   reduced: boolean
 }) {
@@ -431,11 +512,11 @@ function Edge({
       stroke={colors.sky}
       strokeWidth={0.4 + strength * 1.7}
       initial={reduced ? { opacity: 0.14 } : { opacity: 0 }}
-      animate={{ opacity: edgeEmphasis(edge, strength, hoveredId) }}
+      animate={{ opacity: emphasis }}
       transition={{ duration: reduced ? 0.12 : 0.28, delay: reduced ? 0 : 0.35 }}
     />
   )
-}
+})
 
 /**
  * A light running from the held node toward one neighbour. Driven by the
@@ -488,11 +569,19 @@ function EdgePulse({
   return <motion.circle cx={pointX} cy={pointY} r={1.8} fill={colors.sky} style={{ opacity }} />
 }
 
-function Node({
+/**
+ * Memoized for the same reason as Edge: `active` and `opacity` are computed
+ * once in the parent's map from hoveredId/neighbours (which change identity
+ * on every hover transition) so that most nodes — the ones whose actual
+ * emphasis doesn't change between one hover target and the next — see
+ * unchanged props and skip re-rendering entirely, instead of every node in
+ * the graph re-rendering on every hover change.
+ */
+const Node = memo(function Node({
   node,
   layout,
-  hoveredId,
-  neighbours,
+  active,
+  opacity,
   rippling,
   pointer,
   reduced,
@@ -503,8 +592,8 @@ function Node({
 }: {
   node: ConstellationNode
   layout: ConstellationLayout
-  hoveredId: string | null
-  neighbours: Set<string> | null
+  active: boolean
+  opacity: number
   rippling: boolean
   pointer: Pointer
   reduced: boolean
@@ -514,8 +603,6 @@ function Node({
   onActivate: (node: ConstellationNode) => void
 }) {
   const { dx, dy } = useDrift(node, pointer, reduced)
-  const active = hoveredId === node.id
-  const { opacity } = nodeEmphasis(node.id, hoveredId, neighbours)
   const delay = reduced
     ? 0
     : layout.departments.indexOf(node.department) * motionTokens.constellationStagger
@@ -541,6 +628,7 @@ function Node({
         y: dy,
         transformOrigin: `${node.x}px ${node.y}px`,
         cursor: 'pointer',
+        willChange: 'transform',
       }}
       data-node-id={node.id}
       onMouseEnter={() => onHover(node)}
@@ -606,26 +694,19 @@ function Node({
         data-idle-glow={node.id}
         cx={node.x}
         cy={node.y}
-        r={node.r * 0.85}
-        fill={colors.sky}
-        filter="url(#node-glow-idle)"
+        r={node.r * 1.8}
+        fill="url(#node-glow-gradient)"
         style={{ opacity: idleGlowOpacity }}
       />
 
       {/*
         The hover glow sits on its own circle rather than on the core. The
-        core carries the layoutId that flies into the profile, and an SVG
-        filter changes the box that projection measures.
+        core carries the layoutId that flies into the profile, and the shared
+        gradient's own stops (not a filter region) are what shape the halo,
+        so nothing here changes the box that projection measures.
       */}
       {active && !reduced ? (
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={node.r * 0.9}
-          fill={colors.sky}
-          opacity={0.85}
-          filter="url(#node-glow)"
-        />
+        <circle cx={node.x} cy={node.y} r={node.r * 2.4} fill="url(#node-glow-gradient)" opacity={0.9} />
       ) : null}
 
       <motion.circle
@@ -638,4 +719,4 @@ function Node({
       />
     </motion.g>
   )
-}
+})

@@ -94,6 +94,19 @@ describe('magnetOffset', () => {
   it('treats a missing pointer as no pull', () => {
     expect(magnetOffset(node, Number.NaN, Number.NaN)).toEqual({ dx: 0, dy: 0 })
   })
+
+  it('returns the exact same object for every zero-pull case, not just an equal one', () => {
+    // Framer Motion skips notifying dependents when a motion value is set to
+    // a reference-identical value — every edge and node outside the pull
+    // radius relies on that to cost nothing per frame beyond this call. A
+    // fresh `{ dx: 0, dy: 0 }` per call would look the same in a deep-equal
+    // assertion but would make every one of them recompute every frame.
+    const outsideRadius = magnetOffset(node, node.x + MAGNET_RADIUS + 50, node.y)
+    const zeroStrength = magnetOffset(node, node.x + 40, node.y, 0)
+    const badPointer = magnetOffset(node, Number.NaN, Number.NaN)
+    expect(outsideRadius).toBe(zeroStrength)
+    expect(zeroStrength).toBe(badPointer)
+  })
 })
 
 describe('drift never breaks the picture', () => {

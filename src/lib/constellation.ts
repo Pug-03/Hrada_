@@ -186,6 +186,17 @@ export interface Vec2 {
   dy: number
 }
 
+/**
+ * A single stable reference, returned (never a fresh `{ dx: 0, dy: 0 }`) for
+ * every point currently outside the pull radius. Framer Motion's motion
+ * values skip notifying dependents when a `.set()` call's value is
+ * reference-identical to the current one — so every node and edge sitting
+ * outside the cursor's radius costs one cheap magnetOffset call per frame
+ * and nothing downstream: no dx/dy re-derivation, no edge path rebuild, no
+ * DOM write. Returning a fresh object here instead would silently defeat
+ * that and make every edge in the graph recompute its curve on every frame
+ * the pointer moves anywhere, regardless of distance.
+ */
 const NO_PULL: Vec2 = { dx: 0, dy: 0 }
 
 /**
