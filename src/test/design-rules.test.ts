@@ -71,6 +71,21 @@ describe('§3.2 the type scale', () => {
   })
 })
 
+describe('the constellation\'s decorative layer stays in the sky family', () => {
+  it('never fills the starfield with haze, signal, warn or critical', () => {
+    // The starfield is atmosphere, not a second signal — it borrows the one
+    // hue the canvas already uses (sky), dimmer and smaller, rather than
+    // reaching for another palette token to tell itself apart from a node.
+    const constellation = files.find((f) => f.path === 'components/SkillConstellation/SkillConstellation.tsx')!
+    const starfieldTag = constellation.source.match(/<g[^>]*data-constellation-starfield[^>]*>/)?.[0]
+    expect(starfieldTag, 'starfield <g> not found').toBeTruthy()
+    expect(starfieldTag).toContain('colors.sky')
+    for (const token of ['colors.haze', 'colors.signal', 'colors.warn', 'colors.critical']) {
+      expect(starfieldTag).not.toContain(token)
+    }
+  })
+})
+
 describe('charts carry no light-theme defaults', () => {
   const charts = files.find((f) => f.path === 'components/charts/Charts.tsx')!
 

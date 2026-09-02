@@ -242,8 +242,10 @@ export function SkillConstellation({
             Decorative starfield — atmosphere, not data. Smaller, dimmer, no
             glow, no edges, and rendered as plain circles rather than motion
             components: nothing here ever moves or responds to the pointer.
+            Sky, not haze — decoration stays inside the one hue this canvas
+            already uses rather than introducing a second family for it.
           */}
-          <g aria-hidden data-constellation-starfield fill={colors.haze}>
+          <g aria-hidden data-constellation-starfield fill={colors.sky}>
             {stars.map((star, i) => (
               <circle key={i} cx={star.x} cy={star.y} r={star.r} opacity={star.opacity} />
             ))}

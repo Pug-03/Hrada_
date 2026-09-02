@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from '@/App'
 import { EMPLOYEES } from '@/data/employees'
 import { edgeTouches, layoutConstellation } from '@/lib/constellation'
+import { colors } from '@/lib/theme'
 import { useSession } from '@/store/session'
 
 /**
@@ -154,6 +155,24 @@ describe('constellation resting state', () => {
       expect(star.getAttribute('data-node-id')).toBeNull()
       expect(star.getAttribute('tabindex')).toBeNull()
       expect(star.getAttribute('filter')).toBeNull()
+    }
+  })
+
+  it('decorates with sky, not a second hue, and stays dimmer and smaller than a real node', () => {
+    const { container } = renderDashboard()
+    const starfield = container.querySelector('[data-constellation-starfield]')!
+    // The group carries the colour once; individual stars vary only opacity
+    // and radius. This is the sky token's own rendered value — haze or any
+    // other palette colour here would mean decoration reaching outside the
+    // one hue this canvas is built from.
+    expect((starfield as SVGGElement).getAttribute('fill')).toBe(colors.sky)
+
+    const stars = [...starfield.querySelectorAll('circle')]
+    const realNode = container.querySelector('[data-node-id]')!
+    const realRadius = Number(realNode.querySelector('circle')?.getAttribute('r'))
+    for (const star of stars) {
+      expect(Number(star.getAttribute('r'))).toBeLessThan(realRadius)
+      expect(Number(star.getAttribute('opacity'))).toBeLessThan(0.25)
     }
   })
 
