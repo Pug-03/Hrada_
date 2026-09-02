@@ -1,0 +1,88 @@
+@import '@fontsource/ibm-plex-sans-thai/400.css';
+@import '@fontsource/ibm-plex-sans-thai/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import 'tailwindcss';
+
+/*
+ * HRADA design tokens — §3.1 of the spec.
+ *
+ * The palette is closed: if a colour is not in this block it does not belong
+ * in the product. `sky` in particular is not decoration — it is the signal
+ * that says "a scoring function produced this number". See src/lib/theme.ts.
+ */
+@theme {
+  --color-ink: #070b12;
+  --color-panel: #0f1826;
+  --color-panel-raised: #141f30;
+  --color-line: #1c2c42;
+  --color-signal: #2563eb;
+  --color-sky: #38bdf8;
+  --color-haze: #8aa2c0;
+  --color-text: #e6eef9;
+  --color-warn: #f59e0b;
+  --color-critical: #f87171;
+
+  --font-sans: 'IBM Plex Sans Thai', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* §3.2 — the only type sizes in the system. */
+  --text-display: 2.5rem;   /* 40px */
+  --text-title: 1.75rem;    /* 28px */
+  --text-section: 1.25rem;  /* 20px */
+  --text-body: 0.9375rem;   /* 15px */
+  --text-small: 0.8125rem;  /* 13px */
+  --text-micro: 0.6875rem;  /* 11px */
+}
+
+@layer base {
+  html {
+    background-color: var(--color-ink);
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* §14.8 — every number in the system is mono with tabular figures. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-sky);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-ink); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #263a56; }
+}
+
+/*
+ * §5 / §14.11 — reduced motion is enforced at the stylesheet level as well as
+ * in JS, so a component that forgets the hook still cannot animate.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+}

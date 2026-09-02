@@ -1,0 +1,92 @@
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Search, Users } from 'lucide-react'
+
+import { Badge } from '@/components/ui/Badge'
+import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Num } from '@/components/ui/Num'
+import { visibleEmployees, type Session } from '@/lib/permissions'
+import { classifyTalent, calcPromotionReadiness } from '@/lib/scoring'
+import { talentColor } from '@/lib/theme'
+import { useSession } from '@/store/session'
+
+/** §11 Screen 3 — pick a person. Scope follows §8, so the list itself differs per role. */
+export default function EmployeeList() {
+  const session = useSession() as unknown as Session
+  const [query, setQuery] = useState('')
+  const employees = useMemo(() => visibleEmployees(session), [session])
+
+  const filtered = employees.filter((e) =>
+    `${e.name} ${e.nameLatin} ${e.title} ${e.department}`.toLowerCase().includes(query.toLowerCase()),
+  )
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-[28px] leading-tight font-semibold">Employee Skill Profile</h1>
+        <p className="mt-1 text-[13px] text-haze">
+          {session.role === 'Employee'
+            ? 'คุณเห็นเฉพาะโปรไฟล์ของตัวเอง ตามสิทธิ์ของบทบาท Employee'
+            : session.role === 'Manager'
+              ? `คุณเห็นเฉพาะคนในทีม ${session.managerDepartment}`
+              : 'เลือกพนักงานเพื่อดูรายละเอียด skill ทั้งหมด'}
+        </p>
+      </div>
+
+      <label className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2">
+        <Search size={15} className="text-haze" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="ค้นหาชื่อ ตำแหน่ง หรือแผนก"
+          className="w-full bg-transparent text-[13px] outline-none placeholder:text-haze/70"
+        />
+      </label>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={`ไม่พบใครที่ตรงกับ "${query}"`}
+          action="ลองพิมพ์ชื่อแผนก เช่น Marketing หรือ Data"
+        />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((employee) => {
+            const talent = classifyTalent(employee)
+            const readiness = calcPromotionReadiness(employee)
+            return (
+              <Link key={employee.id} to={`/employees/${employee.id}`}>
+                <Card tone="flat" interactive className="h-full p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold">{employee.name}</p>
+                      <p className="truncate text-[13px] text-haze">{employee.title}</p>
+                    </div>
+                    <Badge tone="muted">{employee.department}</Badge>
+                  </div>
+                  <p
+                    className="mt-3 text-[11px]"
+                    style={{ color: talent.qualified ? talentColor[talent.type] : undefined }}
+                  >
+                    {talent.qualified ? talent.type : 'ยังไม่เข้าเกณฑ์การจัดกลุ่ม'}
+                  </p>
+                  <div className="mt-3 flex items-baseline justify-between text-[11px] text-haze">
+                    <span>Promotion Readiness</span>
+                    <Num value={readiness.score * 100} decimals={0} suffix="%" className="text-sky" />
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full rounded-full bg-line/70">
+                    <div
+                      className="h-full rounded-full bg-sky"
+                      style={{ width: `${readiness.score * 100}%` }}
+                    />
+                  </div>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
