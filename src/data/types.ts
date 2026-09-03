@@ -177,6 +177,12 @@ export interface Job {
 export interface CandidateSkill {
   skillId: SkillId
   level: number
+  /**
+   * The excerpt a resume parse claims this level came from. Only present on
+   * candidates sourced from the Recruit screen's resume drop-zone — the
+   * other eight are hand-authored and carry no parse to cite.
+   */
+  extractedFrom?: LocalizedText
 }
 
 export interface CandidateProject {
