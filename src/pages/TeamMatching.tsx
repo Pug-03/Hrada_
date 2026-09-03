@@ -235,19 +235,34 @@ export default function TeamMatching() {
                         {member.workloadRisk ? (
                           <div className="mt-3 flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
                             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warn" />
-                            <p className="text-micro leading-relaxed text-warn">
-                              <NumericText>
-                                {t('team.workloadRisk', {
-                                  name: name(member.employee),
-                                  workload: member.employee.workload,
-                                })}
-                              </NumericText>
-                              {member.backupId ? (
+                            <div className="text-micro leading-relaxed text-warn">
+                              <p>
                                 <NumericText>
-                                  {t('team.workloadBackup', { name: nameOf(member.backupId) })}
+                                  {t('team.workloadRisk', {
+                                    name: name(member.employee),
+                                    workload: member.employee.workload,
+                                  })}
                                 </NumericText>
+                                {member.backupId ? (
+                                  <NumericText>
+                                    {t('team.workloadBackup', { name: nameOf(member.backupId) })}
+                                  </NumericText>
+                                ) : null}
+                              </p>
+                              {/* What the % is made of — same data the Profile's
+                                  WorkloadBreakdown draws from, condensed to fit
+                                  this warning box rather than a stacked bar. */}
+                              {member.employee.activeWork ? (
+                                <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-warn/80">
+                                  {member.employee.activeWork.map((item) => (
+                                    <li key={item.project}>
+                                      <NumericText>{item.project}</NumericText>{' '}
+                                      <span className="num">{item.loadPct}%</span>
+                                    </li>
+                                  ))}
+                                </ul>
                               ) : null}
-                            </p>
+                            </div>
                           </div>
                         ) : null}
 
