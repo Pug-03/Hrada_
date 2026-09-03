@@ -14,6 +14,7 @@ import { NumericText } from '@/components/ui/NumericText'
 import { Num } from '@/components/ui/Num'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { ScoreBreakdown } from '@/components/ui/Explain'
+import { WorkloadBreakdown } from '@/components/ui/WorkloadBreakdown'
 import { EMPLOYEES, HISTORY_MONTHS } from '@/data/employees'
 import { bandFor, skillName } from '@/data/skills'
 import type { SkillId } from '@/data/types'
@@ -238,6 +239,18 @@ export default function EmployeeProfile() {
               <SkillRadarChart data={radarData} currentLabel={t('profile.radar.current')} targetLabel={t('profile.radar.target')} />
             </div>
           </Card>
+
+          {canViewWorkload(session, employee.id) && employee.activeWork ? (
+            <Card tone="flat">
+              <CardHeader
+                title={t('profile.workload.title')}
+                hint={t('profile.workload.hint', { workload: employee.workload })}
+              />
+              <div className="px-5 pb-4">
+                <WorkloadBreakdown items={employee.activeWork} />
+              </div>
+            </Card>
+          ) : null}
 
           <Card tone="flat">
             <CardHeader

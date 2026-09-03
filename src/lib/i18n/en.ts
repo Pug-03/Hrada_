@@ -140,6 +140,8 @@ export const en = {
     'This number supports a decision, it is not an approval — the call still belongs to the manager and HR',
   'profile.growth.title': 'Skill growth',
   'profile.growth.hint': 'The three main skills over the last 6 months (Mar–Aug 2026)',
+  'profile.workload.title': 'Current Workload',
+  'profile.workload.hint': 'What the {workload}% figure is made of',
   'profile.scale.subtitle': 'What levels 0–5 mean, on the same scale everywhere in the product',
   'profile.denied': 'someone else’s profile is outside what this role can see',
 

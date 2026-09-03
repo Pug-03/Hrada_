@@ -137,6 +137,8 @@ export const th: Record<TranslationKey, string> = {
     'ตัวเลขนี้เป็นข้อมูลประกอบการตัดสินใจ ไม่ใช่การอนุมัติเลื่อนตำแหน่ง — การตัดสินใจยังเป็นของหัวหน้าและ HR',
   'profile.growth.title': 'Skill growth',
   'profile.growth.hint': 'ระดับ skill หลัก 3 ตัว ย้อนหลัง 6 เดือน (มี.ค.–ส.ค. 2026)',
+  'profile.workload.title': 'ภาระงานปัจจุบัน',
+  'profile.workload.hint': 'ตัวเลข {workload}% มาจากอะไรบ้าง',
   'profile.scale.subtitle': 'ระดับ 0–5 หมายถึงอะไร ใช้เกณฑ์เดียวกันทั้งระบบ',
   'profile.denied': 'โปรไฟล์ของคนอื่นอยู่นอกขอบเขตที่บทบาทนี้เห็นได้',
 
