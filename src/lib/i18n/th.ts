@@ -162,6 +162,13 @@ export const th: Record<TranslationKey, string> = {
   'recruit.salary': 'Salary Range',
   'recruit.analysing': 'กำลังวิเคราะห์ผู้สมัคร {candidates} คน เทียบกับ {skills} required skills ของ {job}',
   'recruit.candidateMeta': '{education} · ประสบการณ์ {years} ปี · Assessment {score}/100',
+  'recruit.dropzone.label': 'ลากไฟล์ resume/CV มาวางที่นี่ หรือกดเพื่อเลือกไฟล์',
+  'recruit.dropzone.accept': 'PDF หรือ DOCX',
+  'recruit.dropzone.sample': 'ลองใช้ resume ตัวอย่าง',
+  'recruit.dropzone.disclaimer': 'จำลองการทำงาน — เวอร์ชันจริงเชื่อมกับระบบ AI อ่าน resume จริง',
+  'recruit.dropzone.analysing': 'กำลังวิเคราะห์ resume',
+  'recruit.dropzone.added': 'เพิ่ม {name} เข้ารายชื่อผู้สมัครของ {job} แล้ว',
+  'recruit.panel.extractedFrom': 'ดึงข้อมูลจาก resume',
   'recruit.criticalWarning':
     'คะแนนรวมสูง แต่ยังขาด skill สำคัญเกิน {threshold} ระดับ: {gaps} ข้อนี้แยกจากคะแนนโดยตั้งใจ เพราะคะแนนเฉลี่ยกลบเรื่องนี้ได้',
   'recruit.criticalGapItem': '{skill} {current} จากที่ต้องการ {required}',

@@ -168,6 +168,14 @@ export const en = {
   'recruit.salary': 'Salary Range',
   'recruit.analysing': 'Analysing {candidates} candidates against the {skills} required skills for {job}',
   'recruit.candidateMeta': '{education} · {years} years of experience · Assessment {score}/100',
+  'recruit.dropzone.label': 'Drop a resume/CV here, or click to browse',
+  'recruit.dropzone.accept': 'PDF or DOCX',
+  'recruit.dropzone.sample': 'Try a sample resume',
+  'recruit.dropzone.disclaimer':
+    'Demo simulation — production version connects to a real AI resume parser',
+  'recruit.dropzone.analysing': 'Analysing resume',
+  'recruit.dropzone.added': 'Added {name} to the candidate list for {job}',
+  'recruit.panel.extractedFrom': 'Extracted from the resume',
   'recruit.criticalWarning':
     'A high total, but short of a critical skill by more than {threshold} levels: {gaps}. This is shown apart from the score on purpose, because an average hides it.',
   'recruit.criticalGapItem': '{skill} {current} against {required} required',
