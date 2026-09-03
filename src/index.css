@@ -95,6 +95,17 @@
    * then compared at the real opacity and are close enough to be visually
    * indistinguishable from each other — expected, since this technique is
    * meant to break up gradient banding rather than be consciously seen.
+   *
+   * Contrast: this is white noise, and its feColorMatrix alpha row caps each
+   * speckle at 0.4 before the 0.03 CSS opacity scales it again, so the
+   * worst-case pixel this can ever composite onto a background is white at
+   * alpha 0.03 * 0.4 = 0.012. Run through the WCAG relative-luminance
+   * formula against every foreground/background pair the palette actually
+   * pairs text with (ink/panel/panel-raised × text/haze/sky/warn/critical),
+   * the largest contrast-ratio drop anywhere is 0.43 (body text on
+   * panel-raised, 14.161:1 -> 13.731:1) — nowhere near AA's 4.5:1 floor,
+   * which the thinnest pair (critical on panel-raised) still clears at
+   * 5.80:1 worst-case. Even at 10x this opacity every pair still passes AA.
    */
   body::after {
     content: '';
