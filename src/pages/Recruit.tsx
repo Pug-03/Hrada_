@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AlertTriangle, CalendarCheck, ThumbsDown, ThumbsUp, Undo2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { ResumeDropZone } from '@/components/ResumeDropZone'
 import { AnalysisLoader } from '@/components/ui/AnalysisLoader'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -10,6 +11,7 @@ import { ScoreBreakdown } from '@/components/ui/Explain'
 import { NumericText } from '@/components/ui/NumericText'
 import { Num } from '@/components/ui/Num'
 import { SlidePanel } from '@/components/ui/SlidePanel'
+import { CANDIDATES } from '@/data/candidates'
 import { getJob, JOBS } from '@/data/jobs'
 import { skillName } from '@/data/skills'
 import type { Candidate } from '@/data/types'
@@ -55,7 +57,22 @@ export default function Recruit() {
   const pushToast = useToast((s) => s.push)
 
   const job = getJob(jobId)
-  const ranked = useMemo(() => rankCandidates(job), [job])
+
+  // Candidates added through the resume drop-zone, kept local to this
+  // session rather than mutating CANDIDATES — a drop is user action, not
+  // seed data.
+  const [addedCandidates, setAddedCandidates] = useState<Candidate[]>([])
+  const [resumeDraw, setResumeDraw] = useState(0)
+  const onResumeResult = (candidate: Candidate) => {
+    setAddedCandidates((prev) => [...prev, candidate])
+    setResumeDraw((d) => d + 1)
+    pushToast(t('recruit.dropzone.added', { name: name(candidate), job: job.title }))
+  }
+
+  const ranked = useMemo(
+    () => rankCandidates(job, [...CANDIDATES, ...addedCandidates]),
+    [job, addedCandidates],
+  )
 
   // Re-run the analysis state whenever the job changes, so the screen shows
   // the work being done rather than swapping lists instantly.
@@ -126,6 +143,13 @@ export default function Recruit() {
                   <li key={text(item)}>· {text(item)}</li>
                 ))}
               </ul>
+            </div>
+
+            <div className="border-t border-line/70 pt-3">
+              <p className="text-micro text-haze">{t('recruit.dropzone.title')}</p>
+              <div className="mt-1.5">
+                <ResumeDropZone jobId={job.id} draw={resumeDraw} onResult={onResumeResult} />
+              </div>
             </div>
           </div>
         </Card>
@@ -292,6 +316,27 @@ export default function Recruit() {
                       </NumericText>
                     </li>
                   ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {explaining.candidate.skills.some((s) => s.extractedFrom) ? (
+              <div className="mt-5">
+                <p className="text-micro text-haze">{t('recruit.panel.extractedFrom')}</p>
+                <ul className="mt-1.5 space-y-2">
+                  {explaining.candidate.skills
+                    .filter((s) => s.extractedFrom)
+                    .map((s) => (
+                      <li key={s.skillId} className="rounded-lg border border-line bg-panel-raised/60 p-2.5">
+                        <div className="flex items-baseline justify-between gap-3 text-small">
+                          <span>{skillName(s.skillId)}</span>
+                          <span className="num text-sky">{s.level.toFixed(1)}</span>
+                        </div>
+                        <p className="mt-1 text-micro leading-relaxed text-haze">
+                          “<NumericText>{text(s.extractedFrom!)}</NumericText>”
+                        </p>
+                      </li>
+                    ))}
                 </ul>
               </div>
             ) : null}

@@ -162,6 +162,7 @@ export const th: Record<TranslationKey, string> = {
   'recruit.salary': 'Salary Range',
   'recruit.analysing': 'กำลังวิเคราะห์ผู้สมัคร {candidates} คน เทียบกับ {skills} required skills ของ {job}',
   'recruit.candidateMeta': '{education} · ประสบการณ์ {years} ปี · Assessment {score}/100',
+  'recruit.dropzone.title': 'เพิ่มผู้สมัครจาก Resume',
   'recruit.dropzone.label': 'ลากไฟล์ resume/CV มาวางที่นี่ หรือกดเพื่อเลือกไฟล์',
   'recruit.dropzone.accept': 'PDF หรือ DOCX',
   'recruit.dropzone.sample': 'ลองใช้ resume ตัวอย่าง',

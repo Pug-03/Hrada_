@@ -168,6 +168,7 @@ export const en = {
   'recruit.salary': 'Salary Range',
   'recruit.analysing': 'Analysing {candidates} candidates against the {skills} required skills for {job}',
   'recruit.candidateMeta': '{education} · {years} years of experience · Assessment {score}/100',
+  'recruit.dropzone.title': 'Add a Candidate via Resume',
   'recruit.dropzone.label': 'Drop a resume/CV here, or click to browse',
   'recruit.dropzone.accept': 'PDF or DOCX',
   'recruit.dropzone.sample': 'Try a sample resume',
