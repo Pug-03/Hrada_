@@ -1,244 +1,215 @@
 # HRADA — AI Workforce Intelligence
 
-A clickable frontend prototype of HRADA: a workforce intelligence tool for growing Thai SMEs
-that answers three questions most organisations cannot answer about the people they already
-employ — what is each person actually good at, what work fits them, and what should they learn
-next.
+**Put the Right Person in the Right Job and Grow the Right Skills.**
 
-The product loop is **RECRUIT → MATCH → DEVELOP → TRACK**, with new data feeding back into
-RECRUIT. Its core is the Employee Skill Graph: instead of storing someone as "Marketing
-Executive", HRADA holds their skills and levels, the evidence behind each level, their
-projects, performance, learning history, career goal and current workload.
+HRADA is a clickable frontend prototype of a workforce intelligence platform for growing
+Thai SMEs (roughly 20–500 employees). Most organizations aren't actually short on talented
+people — they don't know what the people they already have are good at, or how to use them
+well. That information is scattered across resumes, HR databases, performance reviews,
+training records, and manager assessments. HRADA's answer is the **Employee Skill Graph**:
+instead of storing someone as "Marketing Executive," it holds their skills and levels, the
+evidence behind each level, their projects, performance, learning history, career goal, and
+current workload — then builds recruiting, team-matching, learning, and tracking on top of
+that one shared model. The product loop is **RECRUIT → MATCH → DEVELOP → TRACK**, with new
+data feeding back into RECRUIT.
 
-**The rule the whole system is built around:** HRADA is a decision-support system, not an AI
-that decides for people. Every path through it is *analyse → recommend → explain → a human
-decides*. Nothing auto-rejects a candidate, auto-assigns a person, or approves a promotion.
-Every number on screen can be opened to show what produced it.
+## Screenshots
 
-## Running it
+### Entry & Role Selection
 
-Requires Node 20 or newer.
+![Entry screen — role and department picker](docs/screenshots/01-entry-role-picker.png)
+
+Four ways into the same dataset — org-wide (HR/CEO), scoped to one department (Manager), or
+signed in as one specific person (Employee) — with a searchable, department-grouped picker
+instead of a flat name list.
+
+### HR Workforce Dashboard
+
+![Workforce Dashboard with the Skill Constellation](docs/screenshots/02-dashboard-skill-constellation.png)
+
+The Skill Constellation is the centerpiece: one node per person, a line wherever two people
+share a skill at 3.0 or above, and a slow pulse on anyone over 85% workload — clustered by
+department, with cursor-magnetic drift and an idle twinkle that never overlaps a node under
+any cursor position.
+
+### Employee Skill Profile
+
+![Employee profile with skill evidence expanded](docs/screenshots/03-employee-profile-evidence.png)
+
+Every skill level expands to the evidence behind it — a project, a certification, a manager
+review — so a number on screen is never just asserted.
+
+### AI Recruit
+
+![Recruit screen with the Why this match panel open](docs/screenshots/04-recruit-why-match.png)
+
+The highest match score and a critical skill gap can belong to the same candidate at once —
+the "Why this match?" panel shows the full weighted breakdown so the gap can't get buried
+inside an average.
+
+### AI Team Matching
+
+![Team Matching with talent-type badges](docs/screenshots/05-team-matching-team.png)
+
+Teams are assembled by which open requirement each person closes next, not by stacking the
+highest individual scores — talent-type badges (Core Expert, Bridge Member, Developing
+Talent) show why each person made the cut.
+
+### Personalized Learning
+
+![Personalized Learning path with before/after outcome](docs/screenshots/06-learning-outcome.png)
+
+A learning path built from one person's actual skill gap, with a before/after outcome per
+completed item and a low-outcome warning when a finished course barely moved the needle.
+
+### Tracking
+
+![Tracking screen with growth and promotion-readiness KPIs](docs/screenshots/07-tracking-kpis.png)
+
+Org-wide and per-person KPIs — skill coverage, promotion readiness, skill completion,
+internal mobility — sortable by whoever is closest to ready.
+
+### AI Workforce Insights
+
+![AI Workforce Insights grouped by severity](docs/screenshots/08-insights-grouped.png)
+
+Insights are grouped by what kind of problem they are (critical gap, at-risk skill, workload
+risk), capped at five per group with the rest behind an expand, so the list stays readable at
+any dataset size.
+
+## Quick Start
+
+Prerequisites: **Node 20 or newer**, and `npm`.
 
 ```bash
+git clone https://github.com/Pug-03/Hrada_.git
+cd Hrada_
 npm install
-npm run dev        # http://localhost:5173/Hrada_/
+npm run dev
 ```
 
-There is no backend, no database, and no LLM call at runtime. All data is TypeScript in
-`src/data/`, and every figure is computed in the browser. Running the app costs nothing.
+Open **http://localhost:5173/Hrada_/** (the trailing `/Hrada_/` matches the `base` path used
+for GitHub Pages — see [Deployment](#deployment)).
 
-| Command | What it does |
+There is no backend, no database, and no LLM call at runtime — all data lives in
+`src/data/`, and every figure on screen is computed in the browser.
+
+## Available Scripts
+
+| Script | What it does |
 | --- | --- |
-| `npm run dev` | Dev server with hot reload |
-| `npm run build` | Type-check and build to `dist/` |
-| `npm run preview` | Serve the production build |
-| `npm test` | Run the test suite (238 tests) |
-| `npm run typecheck` | Type-check app and tests separately |
-| `npm run lint` | Oxlint |
+| `npm run dev` | Starts the Vite dev server with hot reload |
+| `npm run build` | Type-checks (`tsc -b`) then builds the production bundle to `dist/` |
+| `npm run preview` | Serves the production build locally, for a closer-to-deploy check |
+| `npm test` | Runs the full Vitest suite once (`vitest run`) |
+| `npm run typecheck` | Type-checks the app and the test suite separately (`tsc -b` + `tsc -p tsconfig.test.json`) |
+| `npm run lint` | Runs Oxlint |
 
-Interactive state — candidate decisions, checked learning steps, the current role — persists to
-`localStorage` so a demo survives a refresh. If storage is unavailable (a private window, or a
-browser set to block site data) it falls back to memory rather than failing.
+## Tech Stack
 
-## Trying the prototype
+- **React 19.2** + **TypeScript** + **Vite 8** (rolldown-vite)
+- **React Router 7** — real routes, not tab state, so permissions are enforced at navigation
+  time and the browser's back button works
+- **Tailwind CSS 4** — design tokens declared in an `@theme` block in `src/index.css`
+- **Framer Motion 13** — every animation in the app, including the Skill Constellation's
+  layout, drift, and shared-layout page transitions
+- **Recharts 3** — the radar and line charts
+- **Zustand 5** — app state (session, learning progress, toast queue), persisted to
+  `localStorage`
+- **Vitest 4** + **@testing-library/react 16** + **jsdom** — the test suite
+- **Oxlint** — linting
+- `date-fns`, `clsx`, `tailwind-merge`, `lucide-react`, `@fontsource/ibm-plex-mono`,
+  `@fontsource/ibm-plex-sans-thai` for dates, class merging, icons, and self-hosted fonts
 
-Pick a role on the entry screen; the role switcher at the top right changes it at any time.
-Switching role changes routing and menus, not just what is hidden — an Employee who navigates
-straight to `/recruit` is redirected to an explanation.
+Exact versions are pinned in `package.json`.
 
-A useful path through the demo:
-
-1. **Sign in as HR** → the Workforce Dashboard. The Skill Constellation is the centrepiece: one
-   node per person, a line wherever two people share a skill at 3.0 or above, thickness from how
-   much they share, and a slow orange pulse on anyone over 85% committed. Clicking a node expands
-   it into that person's profile.
-2. **Employee Skill Profile → Jenjira** — click any skill to see the evidence behind its level,
-   and open the Promotion Readiness panel to see the weighting that produced 83%.
-3. **AI Recruit → Senior Data Analyst** — the highest-scoring candidate is also the one missing a
-   critical skill, and the warning is shown separately from the score so an average cannot bury it.
-4. **AI Team Matching → AI Marketing Campaign** — the team is assembled by covering the project's
-   open requirements, not by taking the highest individual scores. Adjust the team size and the
-   proposal recomputes. The AI Tools gap it cannot close links straight into Recruit.
-5. **Personalized Learning → Nicha** — two completed Client Handling courses moved her level from
-   3.2 to 3.3, which trips the low-outcome warning. That is the argument for learning in the flow
-   of work, in one number.
-6. **Switch to Employee** and try reaching a screen that role cannot open.
-
-## How it is built
-
-- **Vite 8 + React 19 + TypeScript**, real routes via React Router (not tab state, so permissions
-  can be enforced at navigation time)
-- **Tailwind 4** with the design tokens declared in an `@theme` block in `src/index.css`
-- **Framer Motion** for all animation, **Recharts** for charts, **Zustand** for state,
-  **lucide-react** for icons
+## Project Structure
 
 ```
 src/
-  data/          mock data — employees, skills, roles, jobs, candidates, projects, catalog
-  lib/
-    scoring.ts   every calculation in the product
-    constellation.ts   the skill-graph layout
-    permissions.ts     who can see what
-    theme.ts     design tokens mirrored for TS consumers
-  components/    ui primitives, charts, the constellation
-  pages/         the eight screens plus the not-authorized page
-  store/         Zustand stores, persisted to localStorage
-  test/          render, permission and design-rule tests
+  data/          Mock data: 14 hand-authored + 36 generated employees, skills, roles,
+                 jobs, candidates, projects, and the learning catalog
+  lib/           scoring.ts (every calculation in the product), constellation.ts (the
+                 skill-graph layout), permissions.ts (who can see what), theme.ts
+                 (design tokens mirrored for TS), i18n/ (Thai/English dictionaries)
+  components/    UI primitives (Button, Card, Badge, ...), charts/, and the
+                 SkillConstellation/ component
+  pages/         The eight screens behind a role, plus Entry and NotAuthorized
+  store/         Zustand stores — session, learning progress, decisions, toasts —
+                 persisted to localStorage
+  hooks/         Small shared hooks (an analysis-loader timer, a count-up animation)
+  test/          Screen renders across every role, design-rule guards, and
+                 dataset-integrity checks that don't fit next to one lib file
 ```
 
-### Every number comes from one file
+## Key Design Principles
 
-`src/lib/scoring.ts` holds all the arithmetic as pure functions, each returning both a value and
-the reasoning behind it. Screens render numbers; they never compute them. Change one skill level
-in `src/data/employees.ts` and every dependent figure on every screen moves with it.
+- **Decision-support, never decision-making.** Every path through the product is
+  *analyze → recommend → explain → a human decides*. Nothing auto-rejects a candidate,
+  auto-assigns a person to a team, or approves a promotion — every recommendation carries the
+  reasoning behind it, and a human acts on it.
+- **One file computes every number.** `src/lib/scoring.ts` holds all the arithmetic as pure
+  functions, each returning both a value and the reasoning behind it. Screens render numbers;
+  they never compute them, and nothing is hardcoded — change a skill level in
+  `src/data/employees.ts` and every dependent figure on every screen moves with it.
+  `src/lib/constellation.ts` does the same for the skill-graph layout.
+- **Bilingual by default, role-scoped by construction.** Every screen renders in Thai or
+  English from one dictionary pair (`src/lib/i18n/th.ts` / `en.ts`) with no partial
+  translations, and `src/lib/permissions.ts` gates both routing and the data a session can see
+  for four roles — HR, Manager, Employee, CEO — so hiding a menu item with CSS is never the
+  permission model.
+- **Frontend-only prototype.** No backend, no database, no real authentication, and no AI API
+  call at runtime — every "AI-generated" number is a deterministic calculation over mock data,
+  reproducible and free to run.
 
-The four AI engines the product describes map onto it directly:
+## Known Limitations / Out of Scope
 
-| Engine | Functions |
-| --- | --- |
-| Skill Intelligence | `sharedSkillEdges`, `evidenceStrength`, `avgMonthlyGrowth`, `totalSkillLevel` |
-| Matching | `calcCandidateMatchScore`, `calcTeamFit`, `selectTeam` |
-| Learning | `generateLearningPath`, `calcLearningOutcome`, `calcSkillCompletionRate`, `calcTimeToCompetency` |
-| Workforce Intelligence | `calcWorkforceHealth`, `generateInsights`, `calcPromotionReadiness`, `classifyTalent` |
+This is a prototype of the decision layer, not a production HR system. It deliberately does
+not include:
 
-Two decisions in there are worth knowing about:
+- A backend, database, or real authentication (role switching is a demo convenience, not a
+  login)
+- Real AI/LLM calls — every score, match, and recommendation is a pure function over
+  hand-authored and generated mock data
+- Payroll, attendance, a full LMS, or ERP/CRM integration
+- Data persistence beyond the current browser (Zustand's `localStorage` persistence covers a
+  demo surviving a refresh, nothing more)
 
-- **Talent classification uses criteria, never a ranking.** Someone is a Core Expert because they
-  hold a skill at 4.3+ with at least two independent evidence sources and performance at 4.0+ —
-  not because they land in some top percentile of their colleagues. Anyone meeting none of the
-  three sets of criteria is marked unqualified and the UI says so, rather than inventing a
-  category for them.
-- **Team selection covers requirements rather than taking the top N.** The three highest
-  individual fits are often the same profile, which leaves half a project unstaffed. The algorithm
-  repeatedly picks whoever closes the most open requirements, then fills remaining slots by fit
-  among people with real capacity, and guarantees a Developing Talent on any team of four or more.
+The original product specification is kept in `spec/` for reference.
 
-### Critical vs. at-risk skills
+## Live Demo
 
-The source brief defined a Critical Skill Gap as "fewer than 2 people meet the bar" and an
-At-Risk Skill as "exactly 1 person meets the bar". Those overlap — every at-risk skill would also
-be critical — so the two are separated here by asking different questions:
+**https://pug-03.github.io/Hrada_/**
 
-- **Critical** — the business has committed to work needing this skill and *nobody* can do it at
-  the level committed. Derived from open jobs and active projects only, since a role someone hopes
-  to grow into is not work owed to a client. On this dataset: AI Tools, alone.
-- **At-Risk** — exactly one person in the company holds the skill at 4.0, whether or not there is
-  open work for it. A key-person problem, and its count moves with roster size in either direction
-  as the underlying skill mix shifts — at 50 people it is 8 skills. Two of those (UX Research,
-  Financial Analysis) are load-bearing §9.4 planted cases the generated population is built to
-  never disturb. The Insights screen shows the five thinnest benches and expands to the rest, for
-  whichever count the dataset produces.
+Deployed automatically on every push to `main` via GitHub Actions
+(`.github/workflows/deploy.yml`) using the official `actions/deploy-pages` flow. The app uses
+`HashRouter` (URLs like `/Hrada_/#/dashboard`) since GitHub Pages has no server-side rewrite
+rule for a static SPA's clean routes.
 
-The two sets cannot intersect: critical means zero owners, at-risk means one.
+## Testing
 
-### 14 hand-authored people, 36 generated
+```bash
+npm test
+```
 
-`src/data/employees.ts` exports 14 people locked verbatim to the original product spec — never
-touch these — plus a synthetic population from `src/data/generateEmployees.ts` that rounds the
-roster out to 50, across the approved distribution:
+239 tests across 12 files, covering:
 
-| Department | Total | Hand-authored | Generated |
-| --- | --- | --- | --- |
-| Marketing | 10 | 4 | 6 |
-| Sales | 11 | 2 | 9 |
-| Data | 8 | 2 | 6 |
-| Product | 13 | 3 | 10 |
-| Operations | 8 | 3 | 5 |
-
-(An earlier pass scaled this to 114 people — Marketing 22/Sales 26/Data 18/Product 30/Operations
-18 — but the Skill Constellation stuttered at that headcount. Diagnosis found two real per-frame
-inefficiencies rather than raw node count: `useDrift` called the same offset calculation twice per
-point per frame instead of once, and the idle-twinkle layer ran one independent Framer animation
-loop per node forever instead of one shared clock. Both are fixed in `SkillConstellation.tsx`
-regardless of headcount — see the file's own comments — and the roster was separately brought back
-down to 50, proportionally scaled from the 114-person breakdown above.)
-
-The generator is a seeded PRNG (mulberry32, fixed seed), never `Math.random()` — the same
-"same data, same picture" guarantee the constellation's layout relies on holds for the generated
-population too. Every generated person carries the same shape as the hand-authored 14: skills with
-evidence (≥2 sources once a level clears 3.0), a 6-month history for their top 3 skills, projects,
-occasional learning history, a career goal pointing at one of the 14 existing target roles.
-
-Three skill levels are hard-capped below 4.0 for every generated person, no exceptions — AI Tools,
-UX Research, and Financial Analysis — because §9.4's critical-gap and at-risk planted cases depend
-on nobody, and exactly one person respectively, ever crossing that bar. Workload and performance
-are kept from both crossing at once (>85% workload with ≥4.0 performance), so the only two
-Workload Risk cases stay Piya and Wichai. All seven planted cases were re-verified against the full
-50-person roster after generation, not assumed to still hold.
-
-`ORG.totalHeadcount` is 56 — 6 more than the 50 modeled, the same "small, believable gap" framing
-(people on leave, recent hires not yet onboarded) as the original spec's 126-for-14, recalibrated
-rather than carried over as a stale ratio.
-
-## Design
-
-A closed palette of ten tokens, declared once in `src/index.css` and mirrored in
-`src/lib/theme.ts`. `sky` is not decoration — it means "a scoring function produced this number",
-and the association only holds if nothing else uses it. Departments are encoded as opacity steps
-of `sky` rather than five invented hues, for the same reason.
-
-Type is IBM Plex Sans Thai for text and IBM Plex Mono with tabular figures for every number in
-the system, including the figures inside sentences the scoring engine writes.
-
-Motion appears in exactly two situations: responding to something the user did, and one
-orchestrated entrance on the Dashboard's first load. Under `prefers-reduced-motion` all of it
-collapses to a short opacity fade, enforced both in the components and as a stylesheet backstop.
-
-Interface copy is Thai; HR terminology stays in English (Skill Gap, Match Score, Learning Path,
-Workforce Health, Core Expert, Bridge Member, Developing Talent, Promotion Readiness, Internal
-Mobility, Workload, Skill Coverage).
-
-## Tests
-
-238 tests across twelve files. The core ones:
-
-- **`src/lib/scoring.test.ts`** — every scoring function, dataset integrity (evidence rules, level
-  ranges, history completeness, the 14 hand-authored people preserved exactly), and each of the
-  seven cases the brief plants in the data, re-verified against the full 50-person roster.
-- **`src/lib/constellation.test.ts`** / **`src/lib/theme.test.ts`** — the layout's drift-safety
-  guarantee (no two nodes can touch under any cursor position, for the current headcount) and the
-  department colour system staying inside the sky→signal hue range.
-- **`src/test/screens.dom.test.tsx`** — every screen under every role that can open it, failing on
-  any console error or warning, plus the permission redirects.
-- **`src/test/role-picker.dom.test.tsx`** — the department-grouped, searchable employee picker
-  (both name forms, regardless of active locale) that replaced a flat 14-name list, since even the
-  current 50-person roster is too many names to list inline.
-- **`src/test/mono-numbers.dom.test.tsx`** — walks the rendered DOM of all eleven routes and fails
-  on any digit not in the mono face.
-- **`src/test/reduced-motion.dom.test.tsx`** — re-renders every screen with the media query
-  reporting true, so the reduced branches actually execute.
-- **`src/components/ui/NumericText.test.tsx`** — the splitter that puts figures inside prose into
-  the mono face.
-
-## Deployment
-
-Pushing to `main` builds and publishes the app to GitHub Pages automatically, via
-`.github/workflows/deploy.yml` (the official `actions/deploy-pages` flow — no `gh-pages` branch
-involved). The one manual step is enabling Pages itself in the repo's **Settings → Pages**,
-setting **Source** to **GitHub Actions**; after that, every push deploys on its own.
-
-Two things follow from being served at a subpath rather than a domain root:
-
-- **`base: '/Hrada_/'`** in `vite.config.ts` — GitHub Pages serves this repo from
-  `https://<user>.github.io/Hrada_/`, not from the domain root, so every built asset URL needs
-  that prefix. Vite rewrites `index.html`'s asset references and the dev server's own URL to
-  match automatically; nothing else in the app needs to know its base path.
-- **`HashRouter`, not `BrowserRouter`** (`src/main.tsx`) — GitHub Pages is a static file host with
-  no server-side rewrite rule, so a clean URL like `/Hrada_/dashboard` requested directly (a
-  refresh, a bookmark, a shared link) 404s before React ever loads. `HashRouter` keeps everything
-  after `#` client-side only — the server only ever sees a request for `/Hrada_/` itself — so
-  every route works under direct navigation and refresh with zero server configuration. The
-  trade-off is a `#` in the URL (`/Hrada_/#/dashboard`); the alternative, a `404.html`
-  redirect-script trick that preserves clean URLs, was skipped here as an extra moving part for a
-  win this project has no use for.
-
-localStorage is scoped by origin, not by path, so the persisted stores (session, language,
-learning progress, candidate decisions) are unaffected by any of this — they behave identically
-under the `/Hrada_/` subpath as they do at `localhost:5173/Hrada_/` in development.
-
-## Out of scope
-
-No backend or database, no real authentication, no LLM calls, no payroll, attendance, LMS, ERP or
-CRM. This is a prototype of the decision layer, not an HR system.
-
-The original specification is kept in `spec/` for reference.
+- **Every scoring function** in `src/lib/scoring.ts` — one describe block per spec section,
+  each asserting the actual formula, not just "it runs."
+- **Dataset integrity**, including that the 14 hand-authored people from the original spec
+  are preserved exactly (same ids, names, skills) no matter how the generated population
+  around them changes.
+- **Planted-case verification** — the spec plants specific, deliberate outcomes in the data
+  (AI Tools as the only critical skill gap with zero qualified people, UX Research and
+  Financial Analysis each at-risk with exactly one qualified person, Piya and Wichai as the
+  only two workload-risk cases, Jenjira/Mark/Kitti guaranteed inside High Potential) and the
+  suite re-verifies every one of them against the live dataset rather than assuming they still
+  hold after a data change.
+- **Design-rule guards** (`src/test/design-rules.test.ts`) — unusual because they check the
+  *source code* with regexes rather than rendered output: the color palette stays closed to
+  the tokens declared in `theme.ts` (no stray hex literals anywhere else), and any place that
+  clears a focus outline (`outline-none`) is required to restore one, so an accessibility
+  regression fails the build instead of waiting for a manual review to catch it.
+- **Screen renders** across every role that can and cannot open them, permission redirects,
+  the constellation's hover/click behavior, reduced-motion behavior, locale switching, and a
+  guard that every digit rendered anywhere in the app uses the monospace figure style.
