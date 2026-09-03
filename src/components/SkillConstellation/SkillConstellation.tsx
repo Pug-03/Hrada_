@@ -140,7 +140,15 @@ export function SkillConstellation({
   }, [])
 
   const layout = useMemo(() => layoutConstellation(employees), [employees])
-  const stars = useMemo(() => generateStarfield(layout.width, layout.height), [layout.width, layout.height])
+  // A smaller filtered view (a Manager's one department) has more genuinely
+  // empty canvas around its fewer, bigger nodes — a modest, capped bump in
+  // star count keeps that space feeling like atmosphere rather than a gap,
+  // without ever outnumbering the real nodes' visual weight.
+  const starCount = Math.round(70 * (1 + (layout.richness - 1) * 0.5))
+  const stars = useMemo(
+    () => generateStarfield(layout.width, layout.height, starCount),
+    [layout.width, layout.height, starCount],
+  )
   const maxShared = Math.max(1, ...layout.edges.map((e) => e.sharedSkills.length))
   const neighbours = useMemo(
     () => (hovered ? neighbourIds(layout.edges, hovered.id) : null),
@@ -607,12 +615,16 @@ const Node = memo(function Node({
     ? 0
     : layout.departments.indexOf(node.department) * motionTokens.constellationStagger
   const twinkle = useMemo(() => twinklePlan(node.id), [node.id])
+  // A smaller filtered view has fewer nodes competing for attention, so it
+  // can afford a more pronounced glow per node — capped well short of
+  // clipping to 1, since this multiplies an already-animated value.
+  const glowBoost = 1 + (layout.richness - 1) * 0.4
   // A cheap sine read off the one shared, throttled clock — replaces what
   // used to be this node's own independent Framer animation controller
   // running a keyframe-array easing loop forever, whether or not the tab was
   // even visible.
   const idleGlowOpacity = useTransform(twinkleClock, (t) =>
-    reduced ? IDLE_GLOW_BASE : twinkleOpacity(t, twinkle),
+    reduced ? IDLE_GLOW_BASE : Math.min(1, twinkleOpacity(t, twinkle) * glowBoost),
   )
 
   return (
@@ -706,7 +718,13 @@ const Node = memo(function Node({
         so nothing here changes the box that projection measures.
       */}
       {active && !reduced ? (
-        <circle cx={node.x} cy={node.y} r={node.r * 2.4} fill="url(#node-glow-gradient)" opacity={0.9} />
+        <circle
+          cx={node.x}
+          cy={node.y}
+          r={node.r * 2.4}
+          fill="url(#node-glow-gradient)"
+          opacity={Math.min(1, 0.9 * glowBoost)}
+        />
       ) : null}
 
       <motion.circle

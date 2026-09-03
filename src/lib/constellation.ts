@@ -22,6 +22,15 @@ export interface ConstellationLayout {
   edges: (SkillEdge & { from: ConstellationNode; to: ConstellationNode })[]
   /** Department order, so the first paint can stagger cluster by cluster. */
   departments: Department[]
+  /**
+   * How much bigger and more spread out this layout is than the full-org
+   * baseline (1 at 50 people, up to 2× for a small filtered view). The
+   * component uses this to scale decoration — starfield density, glow
+   * intensity — to match, so a Manager's 8-person department reads as a
+   * rich, deliberately composed view rather than a shrunken leftover of
+   * the full one.
+   */
+  richness: number
 }
 
 /**
@@ -71,6 +80,48 @@ const CLUSTER_CENTRES: Record<Department, { x: number; y: number }> = {
   Sales: { x: 220, y: 480 },
 }
 
+const ALL_DEPARTMENTS = Object.keys(CLUSTER_CENTRES) as Department[]
+
+/**
+ * The headcount the hand-placed CLUSTER_CENTRES above and the base node/
+ * spacing sizes below were tuned for. A Manager scoped to one department
+ * sees far fewer people than this — richness (below) is what keeps that
+ * view from just being a shrunken corner of the full one.
+ */
+const FULL_ORG_SIZE = 50
+
+/**
+ * Cluster centres for whatever set of departments is actually on screen.
+ * The full five-department org keeps its hand-placed composition exactly
+ * (the comment above explains why those specific positions were chosen).
+ * A filtered view — currently only a Manager's single department, but this
+ * degrades sensibly for any subset — instead spreads its clusters around
+ * the centre of the *whole* canvas, so the filtered picture uses all the
+ * room a five-department picture would, not just the slice one department
+ * happened to occupy in the full layout.
+ */
+function resolveClusterCentres(departments: Department[]): Record<Department, { x: number; y: number }> {
+  if (departments.length === ALL_DEPARTMENTS.length) return CLUSTER_CENTRES
+
+  const cx = VIEW.width / 2
+  const cy = VIEW.height / 2
+  if (departments.length <= 1) {
+    return Object.fromEntries(departments.map((d) => [d, { x: cx, y: cy }])) as Record<
+      Department,
+      { x: number; y: number }
+    >
+  }
+  // More than one but fewer than all: ring them evenly around the centre,
+  // using most of the shorter dimension so no cluster crowds the edge.
+  const ringRadius = Math.min(VIEW.width, VIEW.height) * 0.3
+  return Object.fromEntries(
+    departments.map((d, i) => {
+      const angle = (i / departments.length) * Math.PI * 2 - Math.PI / 2
+      return [d, { x: cx + Math.cos(angle) * ringRadius, y: cy + Math.sin(angle) * ringRadius }]
+    }),
+  ) as Record<Department, { x: number; y: number }>
+}
+
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 
 /**
@@ -93,8 +144,14 @@ export function layoutConstellation(
   minLevelForEdge = 3.0,
 ): ConstellationLayout {
   const departments = [...new Set(employees.map((e) => e.department))].sort(
-    (a, b) => Object.keys(CLUSTER_CENTRES).indexOf(a) - Object.keys(CLUSTER_CENTRES).indexOf(b),
+    (a, b) => ALL_DEPARTMENTS.indexOf(a) - ALL_DEPARTMENTS.indexOf(b),
   )
+  const centres = resolveClusterCentres(departments)
+
+  // 1 at the full org's headcount, growing toward 2× as the visible set gets
+  // smaller — a Manager's one department gets noticeably bigger, more
+  // spread-out nodes instead of the same size crammed into less space.
+  const richness = Math.min(2, Math.sqrt(FULL_ORG_SIZE / Math.max(employees.length, 1)))
 
   const masses = employees.map(totalSkillLevel)
   const minMass = Math.min(...masses)
@@ -104,11 +161,11 @@ export function layoutConstellation(
   const nodes: ConstellationNode[] = []
   for (const department of departments) {
     const members = employees.filter((e) => e.department === department)
-    const centre = CLUSTER_CENTRES[department] ?? { x: VIEW.width / 2, y: VIEW.height / 2 }
+    const centre = centres[department] ?? { x: VIEW.width / 2, y: VIEW.height / 2 }
     // Sunflower packing: radius ∝ √(rank), angle steps by the golden angle —
     // even coverage of the disc with no clumping, area growing with N rather
     // than a single ring's circumference growing with N.
-    const spacing = 14
+    const spacing = 14 * richness
     members.forEach((employee, i) => {
       const angle = i * GOLDEN_ANGLE + departments.indexOf(department)
       const radius = spacing * Math.sqrt(i + 0.5)
@@ -120,7 +177,7 @@ export function layoutConstellation(
         department,
         x: centre.x + Math.cos(angle) * radius,
         y: centre.y + Math.sin(angle) * radius,
-        r: 6 + intensity * 8,
+        r: (6 + intensity * 8) * richness,
         intensity,
         overloaded: employee.workload > 85,
       })
@@ -128,6 +185,9 @@ export function layoutConstellation(
   }
 
   // Relaxation: separate overlapping nodes, keep everyone near their cluster.
+  // DRIFT_HEADROOM stays in real, unscaled pixels — it is the actual cursor
+  // drift distance, not a visual size, so the safety margin it buys has to
+  // hold at any richness.
   const DRIFT_HEADROOM = MAGNET_MAX_PULL * 2
   const PASSES = 140
   for (let pass = 0; pass < PASSES; pass++) {
@@ -138,7 +198,7 @@ export function layoutConstellation(
         const dx = b.x - a.x
         const dy = b.y - a.y
         const distance = Math.hypot(dx, dy) || 0.001
-        const minDistance = a.r + b.r + 14 + DRIFT_HEADROOM
+        const minDistance = a.r + b.r + 14 * richness + DRIFT_HEADROOM
         if (distance >= minDistance) continue
         const push = (minDistance - distance) / 2
         const ux = dx / distance
@@ -150,7 +210,7 @@ export function layoutConstellation(
       }
     }
     for (const node of nodes) {
-      const centre = CLUSTER_CENTRES[node.department]
+      const centre = centres[node.department]
       node.x += (centre.x - node.x) * 0.015
       node.y += (centre.y - node.y) * 0.015
       node.x = Math.min(VIEW.width - node.r - 12, Math.max(node.r + 12, node.x))
@@ -167,7 +227,7 @@ export function layoutConstellation(
     })
     .filter((e): e is SkillEdge & { from: ConstellationNode; to: ConstellationNode } => e !== null)
 
-  return { ...VIEW, nodes, edges, departments }
+  return { ...VIEW, nodes, edges, departments, richness }
 }
 
 // ─────────────────────────────────────────────────────────── interaction ──

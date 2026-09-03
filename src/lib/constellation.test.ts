@@ -324,3 +324,86 @@ describe('generateStarfield', () => {
     expect(generateStarfield(VIEW.width, VIEW.height, 25)).toHaveLength(25)
   })
 })
+
+describe('layout for a Manager scoped to one department', () => {
+  /**
+   * A Manager only ever sees one department (§8), a fraction of the full
+   * 50-person roster. Before this, layoutConstellation had no idea it was
+   * being handed a filtered set — it placed that department's people at its
+   * hand-picked spot inside the full five-department composition, which put
+   * a small, tight cluster in one corner of a canvas sized for five. These
+   * tests check every department alone, smallest to largest, plus that the
+   * full org's own layout is untouched by any of this.
+   */
+  const departments = [...new Set(EMPLOYEES.map((e) => e.department))]
+
+  it('gives the full five-department org exactly richness 1', () => {
+    expect(layout.richness).toBe(1)
+  })
+
+  for (const department of departments) {
+    const members = EMPLOYEES.filter((e) => e.department === department)
+
+    describe(`${department} (${members.length} people)`, () => {
+      const filtered = layoutConstellation(members)
+
+      it('spreads across the centre of the full canvas, not a corner of it', () => {
+        const meanX = filtered.nodes.reduce((s, n) => s + n.x, 0) / filtered.nodes.length
+        const meanY = filtered.nodes.reduce((s, n) => s + n.y, 0) / filtered.nodes.length
+        // Generous tolerance — this is checking "centred", not pinning an
+        // exact pixel, since the sunflower packing is not perfectly radial.
+        expect(Math.abs(meanX - VIEW.width / 2)).toBeLessThan(VIEW.width * 0.15)
+        expect(Math.abs(meanY - VIEW.height / 2)).toBeLessThan(VIEW.height * 0.15)
+      })
+
+      it('scales nodes up for the smaller headcount, capped at 2×', () => {
+        expect(filtered.richness).toBeGreaterThan(1)
+        expect(filtered.richness).toBeLessThanOrEqual(2)
+      })
+
+      it('places every node inside the viewBox with no overlap at rest', () => {
+        expect(filtered.nodes).toHaveLength(members.length)
+        for (const node of filtered.nodes) {
+          expect(node.x).toBeGreaterThanOrEqual(node.r)
+          expect(node.x).toBeLessThanOrEqual(VIEW.width - node.r)
+          expect(node.y).toBeGreaterThanOrEqual(node.r)
+          expect(node.y).toBeLessThanOrEqual(VIEW.height - node.r)
+        }
+        for (let i = 0; i < filtered.nodes.length; i++) {
+          for (let j = i + 1; j < filtered.nodes.length; j++) {
+            const a = filtered.nodes[i]
+            const b = filtered.nodes[j]
+            expect(Math.hypot(b.x - a.x, b.y - a.y)).toBeGreaterThan(a.r + b.r)
+          }
+        }
+      })
+
+      it('keeps every pair of nodes apart under drift too, at the bigger scale', () => {
+        let worstGap = Infinity
+        for (let x = 0; x <= VIEW.width; x += 50) {
+          for (let y = 0; y <= VIEW.height; y += 50) {
+            const displaced = filtered.nodes.map((node) => {
+              const { dx, dy } = magnetOffset(node, x, y)
+              return { ...node, x: node.x + dx, y: node.y + dy }
+            })
+            for (let i = 0; i < displaced.length; i++) {
+              for (let j = i + 1; j < displaced.length; j++) {
+                const a = displaced[i]
+                const b = displaced[j]
+                worstGap = Math.min(worstGap, Math.hypot(b.x - a.x, b.y - a.y) - (a.r + b.r))
+              }
+            }
+          }
+        }
+        expect(worstGap).toBeGreaterThan(0)
+      })
+
+      it('is deterministic', () => {
+        const again = layoutConstellation(members)
+        expect(again.nodes.map((n) => [n.id, n.x, n.y])).toEqual(
+          filtered.nodes.map((n) => [n.id, n.x, n.y]),
+        )
+      })
+    })
+  }
+})
