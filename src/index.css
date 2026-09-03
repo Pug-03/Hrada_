@@ -84,8 +84,17 @@
    * z-50) — so it sits over everything real, the same way film grain sits
    * over an entire frame rather than being composited per-object.
    * pointer-events: none keeps it out of the way of every click; the
-   * opacity is low enough (tuned separately, see below) that sitting above
-   * text and controls in paint order doesn't read as sitting "on" them.
+   * opacity is low enough that sitting above text and controls in paint
+   * order doesn't read as sitting "on" them.
+   *
+   * 0.03 is the settled value — checked at 0.55 (deliberately blown out)
+   * over both a bare-ink region and a panel-toned card, spanning several
+   * tile edges at 2x device pixel ratio: no periodic seam at the 128px
+   * boundary in either tone, confirming stitchTiles is doing its job through
+   * an actual browser's SVG rasteriser and not just in theory. 0.02–0.04 were
+   * then compared at the real opacity and are close enough to be visually
+   * indistinguishable from each other — expected, since this technique is
+   * meant to break up gradient banding rather than be consciously seen.
    */
   body::after {
     content: '';
