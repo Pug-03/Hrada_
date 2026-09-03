@@ -99,6 +99,20 @@ export interface SkillHistoryPoint {
   level: number
 }
 
+export type WorkItemStatus = 'On Track' | 'At Risk' | 'Wrapping Up' | 'Blocked'
+
+/**
+ * One current assignment contributing to `Employee.workload` — not a task
+ * board, just enough structure to make the percentage explainable. A
+ * person's items should sum to roughly their `workload`.
+ */
+export interface WorkItem {
+  project: string
+  /** Percent of capacity this item accounts for. */
+  loadPct: number
+  status: WorkItemStatus
+}
+
 export interface Employee {
   id: string
   /** Display name, Thai script. */
@@ -122,6 +136,12 @@ export interface Employee {
   learningHistory: LearningRecord[]
   /** Six monthly points (2026-03 … 2026-08) for the person's top three skills. */
   skillHistory: Partial<Record<SkillId, SkillHistoryPoint[]>>
+  /**
+   * What's behind `workload` — 2-4 current assignments. Modeled for the 14
+   * hand-authored people and a sample of the generated ones, not everyone,
+   * so its absence is expected and handled rather than backfilled.
+   */
+  activeWork?: WorkItem[]
 }
 
 export interface SkillRequirement {

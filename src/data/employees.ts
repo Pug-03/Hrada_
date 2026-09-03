@@ -9,6 +9,7 @@ import type {
   EmployeeSkill,
   SkillHistoryPoint,
   SkillId,
+  WorkItem,
 } from './types'
 
 export { HISTORY_MONTHS }
@@ -996,6 +997,145 @@ const HAND_AUTHORED_EMPLOYEES: Employee[] = [
 ]
 
 /**
+ * `workload` used to be a bare percentage with nothing behind it — the
+ * feedback that prompted this was specifically that it read as an
+ * unexplained number. This is the explanation, not a task board: 2-4 current
+ * assignments per person, each a rough slice of their capacity, kept as a
+ * flat lookup rather than inline on every employee so a record already
+ * carrying skills/projects/history doesn't grow a fifth block.
+ *
+ * Covers all 14 hand-authored people plus a sample of eight generated ones
+ * (one per department except Product/Sales/Data, which get two — the
+ * departments where the highest-workload generated people happen to land),
+ * not the full 50 — per the brief, this only needs to cover the people the
+ * product actually points a Workload number at, not the entire roster.
+ * Piya (emp-02) and Wichai (emp-07) are the two §9.4 Workload Risk cases and
+ * are deliberately first.
+ */
+const ACTIVE_WORK: Partial<Record<string, WorkItem[]>> = {
+  'emp-02': [
+    { project: 'Customer Segmentation Model v2', loadPct: 35, status: 'On Track' },
+    { project: 'Data Warehouse Migration', loadPct: 30, status: 'At Risk' },
+    { project: 'Weekly Exec Reporting', loadPct: 15, status: 'On Track' },
+    { project: 'AI Tools Rollout Support', loadPct: 12, status: 'Blocked' },
+  ],
+  'emp-07': [
+    { project: 'Enterprise Renewal Push', loadPct: 34, status: 'On Track' },
+    { project: 'Sales Playbook v2 Rollout', loadPct: 26, status: 'On Track' },
+    { project: 'Team Coaching Cycle', loadPct: 18, status: 'On Track' },
+    { project: 'Competitive Pricing Study', loadPct: 10, status: 'Wrapping Up' },
+  ],
+  'emp-01': [
+    { project: 'Q3 Content Calendar', loadPct: 30, status: 'On Track' },
+    { project: 'Retail Client Onboarding', loadPct: 25, status: 'On Track' },
+    { project: 'SEO Audit Follow-up', loadPct: 17, status: 'Wrapping Up' },
+  ],
+  'emp-03': [
+    { project: 'Paid Acquisition Experiments', loadPct: 28, status: 'On Track' },
+    { project: 'Landing Page A/B Tests', loadPct: 22, status: 'On Track' },
+    { project: 'Referral Program Pilot', loadPct: 15, status: 'Wrapping Up' },
+  ],
+  'emp-04': [
+    { project: 'Content Engine 2025 Refresh', loadPct: 32, status: 'On Track' },
+    { project: 'Editorial Style Guide', loadPct: 20, status: 'On Track' },
+    { project: 'Client Newsletter Series', loadPct: 18, status: 'On Track' },
+  ],
+  'emp-05': [
+    { project: 'Warehouse Migration Support', loadPct: 25, status: 'On Track' },
+    { project: 'Ad-hoc Reporting Requests', loadPct: 20, status: 'On Track' },
+    { project: 'SQL Onboarding Buddy', loadPct: 13, status: 'Wrapping Up' },
+  ],
+  'emp-06': [
+    { project: 'Q3 Hiring Plan', loadPct: 28, status: 'On Track' },
+    { project: 'Workforce Budget Review', loadPct: 24, status: 'At Risk' },
+    { project: 'Manager Training Rollout', loadPct: 24, status: 'On Track' },
+  ],
+  'emp-08': [
+    { project: 'Mid-Market Pipeline Build', loadPct: 30, status: 'On Track' },
+    { project: 'Client Renewal Calls', loadPct: 22, status: 'On Track' },
+    { project: 'CRM Data Cleanup', loadPct: 10, status: 'Wrapping Up' },
+  ],
+  'emp-09': [
+    { project: 'Product Analytics Revamp', loadPct: 30, status: 'On Track' },
+    { project: 'Q3 Roadmap Planning', loadPct: 25, status: 'At Risk' },
+    { project: 'Feature Discovery Interviews', loadPct: 15, status: 'On Track' },
+    { project: 'Stakeholder Alignment', loadPct: 10, status: 'On Track' },
+  ],
+  'emp-10': [
+    { project: 'Onboarding Flow Study', loadPct: 28, status: 'On Track' },
+    { project: 'Usability Testing Sprint', loadPct: 24, status: 'On Track' },
+    { project: 'Research Repository Cleanup', loadPct: 16, status: 'Wrapping Up' },
+  ],
+  'emp-11': [
+    { project: 'Product Analytics Revamp Build', loadPct: 32, status: 'On Track' },
+    { project: 'API Performance Fixes', loadPct: 28, status: 'At Risk' },
+    { project: 'On-call Rotation', loadPct: 14, status: 'On Track' },
+    { project: 'Tech Debt Cleanup', loadPct: 10, status: 'Blocked' },
+  ],
+  'emp-12': [
+    { project: 'Vendor Contract Renewals', loadPct: 26, status: 'On Track' },
+    { project: 'Office Relocation Logistics', loadPct: 24, status: 'On Track' },
+    { project: 'Expense Process Cleanup', loadPct: 16, status: 'Wrapping Up' },
+  ],
+  'emp-13': [
+    { project: 'Q3 Budget Close', loadPct: 30, status: 'At Risk' },
+    { project: 'Finance Dashboard Build', loadPct: 24, status: 'On Track' },
+    { project: 'Vendor Cost Audit', loadPct: 20, status: 'On Track' },
+  ],
+  'emp-14': [
+    { project: 'Social Media Scheduling', loadPct: 20, status: 'On Track' },
+    { project: 'Campaign Asset Support', loadPct: 15, status: 'On Track' },
+    { project: 'Market Research Notes', loadPct: 10, status: 'Wrapping Up' },
+  ],
+  // A sample of the generated population — chosen for having the highest
+  // workload in their department, so the breakdown is there precisely where
+  // someone reading the roster is most likely to ask "explainable how?"
+  'emp-41': [
+    { project: 'Release Regression Suite', loadPct: 35, status: 'At Risk' },
+    { project: 'Test Automation Migration', loadPct: 30, status: 'Blocked' },
+    { project: 'Sprint Bug Triage', loadPct: 18, status: 'On Track' },
+    { project: 'Onboarding New QA Hire', loadPct: 10, status: 'On Track' },
+  ],
+  'emp-21': [
+    { project: 'Deal Desk Support', loadPct: 32, status: 'At Risk' },
+    { project: 'Quarter-End Contract Processing', loadPct: 30, status: 'On Track' },
+    { project: 'CRM Reporting Cleanup', loadPct: 18, status: 'On Track' },
+    { project: 'Renewal Reminders Backlog', loadPct: 12, status: 'Blocked' },
+  ],
+  'emp-31': [
+    { project: 'Data Quality Audit', loadPct: 34, status: 'At Risk' },
+    { project: 'Reporting Backlog Cleanup', loadPct: 28, status: 'On Track' },
+    { project: 'Dashboard Access Requests', loadPct: 18, status: 'On Track' },
+    { project: 'Pipeline Monitoring', loadPct: 12, status: 'Blocked' },
+  ],
+  'emp-19': [
+    { project: 'Regional Campaign Launch', loadPct: 32, status: 'On Track' },
+    { project: 'Partner Co-marketing Deal', loadPct: 26, status: 'On Track' },
+    { project: 'Brand Guidelines Refresh', loadPct: 23, status: 'Wrapping Up' },
+  ],
+  'emp-47': [
+    { project: 'Month-End Close Support', loadPct: 30, status: 'At Risk' },
+    { project: 'Invoice Backlog Processing', loadPct: 28, status: 'On Track' },
+    { project: 'Expense Audit Prep', loadPct: 25, status: 'On Track' },
+  ],
+  'emp-26': [
+    { project: 'Top-10 Account Reviews', loadPct: 32, status: 'On Track' },
+    { project: 'Renewal Risk Outreach', loadPct: 28, status: 'At Risk' },
+    { project: 'QBR Deck Prep', loadPct: 25, status: 'On Track' },
+  ],
+  'emp-33': [
+    { project: 'Exec Dashboard Rebuild', loadPct: 30, status: 'On Track' },
+    { project: 'Ad-hoc Data Requests', loadPct: 28, status: 'At Risk' },
+    { project: 'Data Source Audit', loadPct: 25, status: 'On Track' },
+  ],
+  'emp-40': [
+    { project: 'Feature Usage Analysis', loadPct: 30, status: 'On Track' },
+    { project: 'A/B Test Backlog', loadPct: 26, status: 'At Risk' },
+    { project: 'Weekly Metrics Review', loadPct: 24, status: 'On Track' },
+  ],
+}
+
+/**
  * The full roster — the 14 people the spec locks verbatim, plus a
  * deterministically generated population rounding the org out to the
  * approved department distribution (Marketing 10, Sales 11, Data 8,
@@ -1005,7 +1145,10 @@ const HAND_AUTHORED_EMPLOYEES: Employee[] = [
 export const EMPLOYEES: Employee[] = [
   ...HAND_AUTHORED_EMPLOYEES,
   ...generateSyntheticEmployees(HAND_AUTHORED_EMPLOYEES.length + 1),
-]
+].map((employee) => {
+  const activeWork = ACTIVE_WORK[employee.id]
+  return activeWork ? { ...employee, activeWork } : employee
+})
 
 const byId = new Map(EMPLOYEES.map((e) => [e.id, e]))
 
