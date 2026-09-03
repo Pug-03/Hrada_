@@ -161,7 +161,7 @@ export default function Learning() {
                             onClick={() => toggleCompleted(employee.id, step.id)}
                             aria-pressed={isDone}
                             aria-label={t('learning.markDone', { title })}
-                            className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border transition-colors duration-150 ${
+                            className={`pointer-coarse:size-9 mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border transition-colors duration-150 ${
                               isDone ? 'border-sky bg-sky text-ink' : 'border-line hover:border-haze'
                             }`}
                           >

@@ -11,6 +11,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { useNavigate } from 'react-router-dom'
 
 import type { Employee } from '@/data/types'
+import { useCoarsePointer } from '@/hooks/useCoarsePointer'
 import {
   edgeCurveOffset,
   edgeEmphasis,
@@ -66,6 +67,8 @@ const STRENGTH_SPRING = { stiffness: 180, damping: 26 }
 const HOVER_SPRING = { type: 'spring' as const, stiffness: 340, damping: 18 }
 const PULSE_PERIOD_MS = 1500
 const RIPPLE_MS = 260
+/** Half the ~44px touch-target floor, in on-screen pixels. */
+const MIN_TOUCH_RADIUS_PX = 22
 const TILT_SPRING = { stiffness: 120, damping: 22, mass: 0.6 }
 /**
  * Maximum canvas rotation, in degrees. Small on purpose: enough that the field
@@ -106,6 +109,7 @@ export function SkillConstellation({
 }) {
   const navigate = useNavigate()
   const reduced = useReducedMotion()
+  const coarse = useCoarsePointer()
   const t = useT()
   const name = useName()
   const svgRef = useRef<SVGSVGElement | null>(null)
@@ -140,6 +144,12 @@ export function SkillConstellation({
   }, [])
 
   const layout = useMemo(() => layoutConstellation(employees), [employees])
+  /**
+   * Rendered pixels per viewBox unit. Only meaningful once the svg has
+   * actually been measured — until then this falls back to 1 rather than
+   * the momentary divide-by-zero a 0-width first paint would produce.
+   */
+  const svgScale = svgSize.width && layout.width ? svgSize.width / layout.width : 1
   // A smaller filtered view (a Manager's one department) has more genuinely
   // empty canvas around its fewer, bigger nodes — a modest, capped bump in
   // star count keeps that space feeling like atmosphere rather than a gap,
@@ -215,7 +225,10 @@ export function SkillConstellation({
    */
   useEffect(() => {
     const svg = svgRef.current
-    if (!svg || reduced) return
+    // Drift and tilt are both a response to a mouse that hovers without
+    // committing — meaningless on a touch surface, where every contact is
+    // already a deliberate tap. Gated the same way reduced motion is.
+    if (!svg || reduced || coarse) return
 
     let rafId = 0
     let pending: { clientX: number; clientY: number } | null = null
@@ -258,7 +271,7 @@ export function SkillConstellation({
       svg.removeEventListener('pointerleave', onLeave)
       if (rafId) cancelAnimationFrame(rafId)
     }
-  }, [reduced, rawX, rawY, rawStrength, rawTiltX, rawTiltY, layout.width, layout.height])
+  }, [reduced, coarse, rawX, rawY, rawStrength, rawTiltX, rawTiltY, layout.width, layout.height])
 
   const open = useCallback(
     (node: ConstellationNode) => {
@@ -290,148 +303,203 @@ export function SkillConstellation({
     [reduced, open, rawTiltX, rawTiltY],
   )
 
-  const tiltActive = tilting && !reduced
+  const tiltActive = tilting && !reduced && !coarse
+
+  // Tap-to-highlight (§ touch redesign): a tap on a node sets it hovered
+  // without activating — activation happens from the explicit "view profile"
+  // affordance in the tooltip instead, since a second tap on the same node
+  // is ambiguous against a mobile browser's double-tap-to-zoom gesture. A
+  // tap on empty canvas clears the selection, the touch equivalent of the
+  // pointerleave a mouse gets for free.
+  const dismiss = useCallback(() => {
+    if (coarse) setHovered(null)
+  }, [coarse])
 
   return (
     <div className="relative">
       {/*
-        The tilt lives on a wrapper rather than the svg itself so the
-        tooltip and the legend outside it stay square and crisp.
+        A viewport under ~560px has more genuinely empty canvas around each
+        node than legible chart, so it scrolls horizontally at a floor width
+        instead of shrinking the whole graph to fit — the same trade the
+        Tracking table already makes for its own dense content.
       */}
-      <motion.div
-        data-tilt={tiltActive ? 'on' : 'off'}
-        style={
-          tiltActive
-            ? { rotateX: tiltX, rotateY: tiltY, transformPerspective: 1400, willChange: 'transform' }
-            : { rotateX: 0, rotateY: 0 }
-        }
-      >
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          className="w-full"
-          role="img"
-          aria-label={t('constellation.label', { count: employees.length })}
+      {/*
+        Positioned so the tooltip below — an absolute child of this element —
+        scrolls along with the graph instead of staying pinned to the
+        non-scrolling outer container while the node it points at slides
+        out from under it.
+      */}
+      <div className="relative overflow-x-auto sm:overflow-visible">
+        {/*
+          The tilt lives on a wrapper rather than the svg itself so the
+          tooltip and the legend outside it stay square and crisp.
+        */}
+        <motion.div
+          data-tilt={tiltActive ? 'on' : 'off'}
+          className="min-w-140 sm:min-w-0"
+          style={
+            tiltActive
+              ? { rotateX: tiltX, rotateY: tiltY, transformPerspective: 1400, willChange: 'transform' }
+              : { rotateX: 0, rotateY: 0 }
+          }
         >
-          <defs>
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            className="w-full"
+            role="img"
+            aria-label={t('constellation.label', { count: employees.length })}
+            onClick={dismiss}
+          >
+            <defs>
+              {/*
+                Bright core fading to the edge, rather than the reverse — a
+                flat-filled circle reads as a network diagram's node; a hot
+                centre that falls off reads as a point of light.
+              */}
+              <radialGradient id="node-core" cx="42%" cy="38%" r="65%">
+                <stop offset="0%" stopColor={colors.text} stopOpacity={0.95} />
+                <stop offset="35%" stopColor={colors.sky} stopOpacity={0.95} />
+                <stop offset="100%" stopColor={colors.sky} stopOpacity={0.55} />
+              </radialGradient>
+              {/*
+                The glow used to be a live feDropShadow filter, recomputed by
+                the renderer on every opacity or ancestor-transform change —
+                expensive per element, and every node carries one running
+                continuously for the idle twinkle. A blurred-looking circle
+                painted with a radial gradient produces the same halo with no
+                filter pass at all: the "blur" is baked into the gradient
+                stops once, and animating this circle's opacity or letting its
+                parent group translate during drift are both compositor-only
+                operations from here on. One shared gradient, since the visual
+                size difference between the idle and hover glow comes from the
+                circle's own radius (percentage stops scale with it), not from
+                a second gradient definition.
+              */}
+              <radialGradient id="node-glow-gradient" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor={colors.sky} stopOpacity="1" />
+                <stop offset="30%" stopColor={colors.sky} stopOpacity="0.5" />
+                <stop offset="100%" stopColor={colors.sky} stopOpacity="0" />
+              </radialGradient>
+            </defs>
+  
             {/*
-              Bright core fading to the edge, rather than the reverse — a
-              flat-filled circle reads as a network diagram's node; a hot
-              centre that falls off reads as a point of light.
+              Decorative starfield — atmosphere, not data. Smaller, dimmer, no
+              glow, no edges, and rendered as plain circles rather than motion
+              components: nothing here ever moves or responds to the pointer.
+              Sky, not haze — decoration stays inside the one hue this canvas
+              already uses rather than introducing a second family for it.
             */}
-            <radialGradient id="node-core" cx="42%" cy="38%" r="65%">
-              <stop offset="0%" stopColor={colors.text} stopOpacity={0.95} />
-              <stop offset="35%" stopColor={colors.sky} stopOpacity={0.95} />
-              <stop offset="100%" stopColor={colors.sky} stopOpacity={0.55} />
-            </radialGradient>
-            {/*
-              The glow used to be a live feDropShadow filter, recomputed by
-              the renderer on every opacity or ancestor-transform change —
-              expensive per element, and every node carries one running
-              continuously for the idle twinkle. A blurred-looking circle
-              painted with a radial gradient produces the same halo with no
-              filter pass at all: the "blur" is baked into the gradient
-              stops once, and animating this circle's opacity or letting its
-              parent group translate during drift are both compositor-only
-              operations from here on. One shared gradient, since the visual
-              size difference between the idle and hover glow comes from the
-              circle's own radius (percentage stops scale with it), not from
-              a second gradient definition.
-            */}
-            <radialGradient id="node-glow-gradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={colors.sky} stopOpacity="1" />
-              <stop offset="30%" stopColor={colors.sky} stopOpacity="0.5" />
-              <stop offset="100%" stopColor={colors.sky} stopOpacity="0" />
-            </radialGradient>
-          </defs>
-
-          {/*
-            Decorative starfield — atmosphere, not data. Smaller, dimmer, no
-            glow, no edges, and rendered as plain circles rather than motion
-            components: nothing here ever moves or responds to the pointer.
-            Sky, not haze — decoration stays inside the one hue this canvas
-            already uses rather than introducing a second family for it.
-          */}
-          <g aria-hidden data-constellation-starfield fill={colors.sky}>
-            {stars.map((star, i) => (
-              <circle key={i} cx={star.x} cy={star.y} r={star.r} opacity={star.opacity} />
-            ))}
-          </g>
-
-          {/* Edges first, so nodes always sit above their connections. */}
-          <g>
-            {layout.edges.map((edge) => {
-              const strength = edge.sharedSkills.length / maxShared
+            <g aria-hidden data-constellation-starfield fill={colors.sky}>
+              {stars.map((star, i) => (
+                <circle key={i} cx={star.x} cy={star.y} r={star.r} opacity={star.opacity} />
+              ))}
+            </g>
+  
+            {/* Edges first, so nodes always sit above their connections. */}
+            <g>
+              {layout.edges.map((edge) => {
+                const strength = edge.sharedSkills.length / maxShared
+                return (
+                  <Edge
+                    key={`${edge.a}-${edge.b}`}
+                    edge={edge}
+                    strength={strength}
+                    emphasis={edgeEmphasis(edge, strength, hovered?.id ?? null)}
+                    pointer={pointer}
+                    reduced={Boolean(reduced)}
+                  />
+                )
+              })}
+            </g>
+  
+            {/* Energy travelling outward along whatever the held node touches. */}
+            {hovered && !reduced ? (
+              <g aria-hidden data-constellation-pulses>
+                {layout.edges
+                  .filter((edge) => edgeTouches(edge, hovered.id))
+                  .map((edge) => (
+                    <EdgePulse
+                      key={`pulse-${edge.a}-${edge.b}`}
+                      from={edge.from.id === hovered.id ? edge.from : edge.to}
+                      to={edge.from.id === hovered.id ? edge.to : edge.from}
+                      pointer={pointer}
+                      clock={clock}
+                    />
+                  ))}
+              </g>
+            ) : null}
+  
+            {layout.nodes.map((node) => {
+              const emphasis = nodeEmphasis(node.id, hovered?.id ?? null, neighbours)
               return (
-                <Edge
-                  key={`${edge.a}-${edge.b}`}
-                  edge={edge}
-                  strength={strength}
-                  emphasis={edgeEmphasis(edge, strength, hovered?.id ?? null)}
+                <Node
+                  key={node.id}
+                  node={node}
+                  layout={layout}
+                  active={hovered?.id === node.id}
+                  opacity={emphasis.opacity}
+                  rippling={ripple?.id === node.id}
                   pointer={pointer}
                   reduced={Boolean(reduced)}
+                  coarse={coarse}
+                  scale={svgScale}
+                  displayName={name(node.employee)}
+                  twinkleClock={twinkleClock}
+                  onHover={setHovered}
+                  onActivate={activate}
                 />
               )
             })}
-          </g>
+          </svg>
+        </motion.div>
 
-          {/* Energy travelling outward along whatever the held node touches. */}
-          {hovered && !reduced ? (
-            <g aria-hidden data-constellation-pulses>
-              {layout.edges
-                .filter((edge) => edgeTouches(edge, hovered.id))
-                .map((edge) => (
-                  <EdgePulse
-                    key={`pulse-${edge.a}-${edge.b}`}
-                    from={edge.from.id === hovered.id ? edge.from : edge.to}
-                    to={edge.from.id === hovered.id ? edge.to : edge.from}
-                    pointer={pointer}
-                    clock={clock}
-                  />
-                ))}
-            </g>
-          ) : null}
+        {hovered ? (
+          <div
+            className={
+              coarse
+                ? 'absolute top-0 left-0 z-10 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-micro shadow-lg shadow-black/50'
+                : 'pointer-events-none absolute top-0 left-0 z-10 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-micro shadow-lg shadow-black/50'
+            }
+            style={{
+              // top-0/left-0 above pins this to the wrapper's origin before
+              // the transform runs — without an explicit top/left, an
+              // absolutely-positioned element with none set falls back to
+              // its normal-flow ("static") position, which here means
+              // right after the full-height svg sibling, not (0, 0).
+              transform: `translate(-50%, -100%) translate(${(hovered.x / layout.width) * svgSize.width}px, ${
+                (hovered.y / layout.height) * svgSize.height - 10
+              }px)`,
+            }}
+          >
+            <p className="text-small">{name(hovered.employee)}</p>
+            <p className="text-haze">{hovered.employee.title}</p>
+            {hovered.overloaded ? (
+              <p className="mt-0.5 text-warn">
+                Workload <span className="num">{hovered.employee.workload}%</span>
+              </p>
+            ) : null}
+            {/*
+              Second half of tap-to-highlight: a tap already selected this
+              node above, so activation here is an explicit button rather
+              than a same-node re-tap, which mobile Safari would rather
+              spend on double-tap-to-zoom.
+            */}
+            {coarse ? (
+              <button
+                type="button"
+                onClick={() => activate(hovered)}
+                className="pointer-coarse:min-h-11 mt-1.5 flex w-full items-center justify-center gap-1 rounded-md border border-line bg-panel px-2 text-micro text-sky transition-colors duration-150 hover:bg-panel-raised"
+              >
+                {t('constellation.viewProfile')}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
-          {layout.nodes.map((node) => {
-            const emphasis = nodeEmphasis(node.id, hovered?.id ?? null, neighbours)
-            return (
-              <Node
-                key={node.id}
-                node={node}
-                layout={layout}
-                active={hovered?.id === node.id}
-                opacity={emphasis.opacity}
-                rippling={ripple?.id === node.id}
-                pointer={pointer}
-                reduced={Boolean(reduced)}
-                displayName={name(node.employee)}
-                twinkleClock={twinkleClock}
-                onHover={setHovered}
-                onActivate={activate}
-              />
-            )
-          })}
-        </svg>
-      </motion.div>
-
-      {hovered ? (
-        <div
-          className="pointer-events-none absolute z-10 rounded-lg border border-line bg-panel-raised px-2.5 py-1.5 text-micro shadow-lg shadow-black/50"
-          style={{
-            transform: `translate(-50%, -100%) translate(${(hovered.x / layout.width) * svgSize.width}px, ${
-              (hovered.y / layout.height) * svgSize.height - 10
-            }px)`,
-          }}
-        >
-          <p className="text-small">{name(hovered.employee)}</p>
-          <p className="text-haze">{hovered.employee.title}</p>
-          {hovered.overloaded ? (
-            <p className="mt-0.5 text-warn">
-              Workload <span className="num">{hovered.employee.workload}%</span>
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      {/* Same floor width as the scroll wrapper, hidden once it stops applying. */}
+      <p className="mt-1 px-1 text-micro text-haze sm:hidden">{t('constellation.scrollHint')}</p>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-micro text-haze">
         {layout.departments.map((department) => (
@@ -593,6 +661,8 @@ const Node = memo(function Node({
   rippling,
   pointer,
   reduced,
+  coarse,
+  scale,
   displayName,
   twinkleClock,
   onHover,
@@ -605,6 +675,8 @@ const Node = memo(function Node({
   rippling: boolean
   pointer: Pointer
   reduced: boolean
+  coarse: boolean
+  scale: number
   displayName: string
   twinkleClock: MotionValue<number>
   onHover: (node: ConstellationNode | null) => void
@@ -626,6 +698,11 @@ const Node = memo(function Node({
   const idleGlowOpacity = useTransform(twinkleClock, (t) =>
     reduced ? IDLE_GLOW_BASE : Math.min(1, twinkleOpacity(t, twinkle) * glowBoost),
   )
+  // 22 viewBox units at the current render scale is the ~44px touch-target
+  // floor; below that this grows the *hit* area without touching the node's
+  // visual radius, so a dense mobile layout doesn't get visually bigger dots
+  // just to be tappable.
+  const hitRadius = coarse ? Math.max(node.r, MIN_TOUCH_RADIUS_PX / (scale || 1)) : node.r
 
   return (
     <motion.g
@@ -643,18 +720,49 @@ const Node = memo(function Node({
         willChange: 'transform',
       }}
       data-node-id={node.id}
-      onMouseEnter={() => onHover(node)}
-      onMouseLeave={() => onHover(null)}
-      onClick={() => onActivate(node)}
+      // Gated on !coarse: a touch tap fires a synthetic mouseenter (mobile
+      // browsers simulate hover on tap for compatibility) before the click
+      // this component also handles below — without the guard, that
+      // mouseenter already sets `active` true by the time onClick's own
+      // tap-to-highlight logic runs, so it reads as an already-selected
+      // node and immediately toggles the selection back off.
+      onMouseEnter={() => {
+        if (!coarse) onHover(node)
+      }}
+      onMouseLeave={() => {
+        if (!coarse) onHover(null)
+      }}
+      onClick={(e) => {
+        if (coarse) {
+          // Stops this from also reaching the svg's own onClick, which
+          // clears the selection on a tap anywhere the pointer's coarse —
+          // without this a tap on a node would select it and immediately
+          // deselect it in the same event.
+          e.stopPropagation()
+          onHover(active ? null : node)
+          return
+        }
+        onActivate(node)
+      }}
       tabIndex={0}
       role="button"
       aria-label={`${displayName} — ${node.employee.title}`}
-      onFocus={() => onHover(node)}
-      onBlur={() => onHover(null)}
+      onFocus={() => {
+        if (!coarse) onHover(node)
+      }}
+      onBlur={() => {
+        if (!coarse) onHover(null)
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onActivate(node)
       }}
     >
+      {/* Invisible, ≥44px-on-screen hit target — the visible dot below is
+          often smaller than that, especially on a dense mobile layout. */}
+      {coarse ? (
+        <circle cx={node.x} cy={node.y} r={hitRadius} fill="transparent" pointerEvents="all" />
+      ) : null}
+
       {/* Ambient pulse for anyone over 85% committed (§4). */}
       {node.overloaded ? (
         <motion.circle

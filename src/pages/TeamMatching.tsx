@@ -69,7 +69,7 @@ export default function TeamMatching() {
           <button
             key={option.id}
             onClick={() => setProjectId(option.id)}
-            className={`rounded-lg border px-3.5 py-2 text-left text-small transition-[background-color,transform] duration-150 hover:-translate-y-0.5 ${
+            className={`pointer-coarse:min-h-11 rounded-lg border px-3.5 py-2 text-left text-small transition-[background-color,transform] duration-150 hover:-translate-y-0.5 ${
               option.id === projectId
                 ? 'border-signal/60 bg-signal/15'
                 : 'border-line bg-panel hover:bg-panel-raised'

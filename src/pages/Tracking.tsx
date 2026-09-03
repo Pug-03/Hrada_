@@ -62,7 +62,7 @@ export default function Tracking() {
                 <button
                   key={option}
                   onClick={() => setMode(option)}
-                  className={`rounded-md px-3 py-1.5 text-small transition-colors duration-150 ${
+                  className={`pointer-coarse:min-h-11 rounded-md px-3 py-1.5 text-small transition-colors duration-150 ${
                     mode === option ? 'bg-signal/20 text-text' : 'text-haze hover:text-text'
                   }`}
                 >

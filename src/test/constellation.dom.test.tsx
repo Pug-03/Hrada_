@@ -202,6 +202,79 @@ describe('constellation resting state', () => {
     }
   })
 
+})
+
+/**
+ * Tap-to-highlight (§ touch redesign). Coarse pointer support isn't a
+ * viewport thing — it's gated on matchMedia('(pointer: coarse)') — so it's
+ * exercised here by overriding the stub setup.ts installs (which always
+ * reports `matches: false`) rather than by any viewport trick.
+ */
+describe('constellation on a coarse (touch) pointer', () => {
+  let originalMatchMedia: typeof window.matchMedia
+
+  beforeEach(() => {
+    useSession.getState().signInAsHR()
+    originalMatchMedia = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('pointer: coarse'),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia
+  })
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia
+  })
+
+  it('selects a node on tap without activating it', () => {
+    const { container } = renderDashboard()
+    fireEvent.click(nodeFor(container, HOVERED))
+    expect(screen.getByText('Data Lead')).toBeTruthy()
+    // Still on the dashboard — a tap only selects, it doesn't hand off.
+    expect(screen.getByRole('heading', { name: 'Workforce Dashboard' })).toBeTruthy()
+  })
+
+  it('activates the selected node from the explicit "view profile" affordance', async () => {
+    const { container } = renderDashboard()
+    fireEvent.click(nodeFor(container, HOVERED))
+    // The dictionary default is Thai (§6) — the rest of this file already
+    // reads Thai strings (e.g. the profile heading below) for that reason.
+    fireEvent.click(screen.getByRole('button', { name: 'ดูโปรไฟล์' }))
+
+    await waitFor(
+      () => expect(screen.getByRole('heading', { name: 'ปิยะ ส.' })).toBeTruthy(),
+      { timeout: 8000 },
+    )
+  })
+
+  it('toggles the selection off on a second tap of the same node', () => {
+    const { container } = renderDashboard()
+    fireEvent.click(nodeFor(container, HOVERED))
+    expect(screen.getByText('Data Lead')).toBeTruthy()
+
+    fireEvent.click(nodeFor(container, HOVERED))
+    expect(screen.queryByText('Data Lead')).toBeNull()
+  })
+
+  it('clears the selection on a tap on empty canvas', () => {
+    const { container } = renderDashboard()
+    fireEvent.click(nodeFor(container, HOVERED))
+    expect(screen.getByText('Data Lead')).toBeTruthy()
+
+    fireEvent.click(container.querySelector('svg[role="img"]')!)
+    expect(screen.queryByText('Data Lead')).toBeNull()
+  })
+})
+
+describe('constellation resting state — legend', () => {
+  beforeEach(() => useSession.getState().signInAsHR())
+
   it('gives each department a distinguishable identity, not just an opacity step', () => {
     const { container } = renderDashboard()
     const legendDots = [...container.querySelectorAll('.mt-2 span > span.rounded-full')]

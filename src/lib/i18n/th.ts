@@ -15,6 +15,10 @@ export const th: Record<TranslationKey, string> = {
   'app.tagline': 'Put the Right Person in the Right Job and Grow the Right Skills',
   'app.principle': 'HRADA วิเคราะห์ เสนอแนะ และอธิบายเหตุผล — คนเป็นผู้ตัดสินใจเสมอ',
   'app.headcount': '{count} คน',
+  'app.openMenu': 'เปิดเมนู',
+  'app.closeMenu': 'ปิดเมนู',
+  'app.expandNav': 'ขยายป้ายชื่อเมนู',
+  'app.collapseNav': 'ย่อป้ายชื่อเมนู',
 
   'locale.label': 'ภาษา',
   'locale.th': 'ไทย',
@@ -102,6 +106,8 @@ export const th: Record<TranslationKey, string> = {
   'constellation.label': 'Skill Constellation ของพนักงาน {count} คน',
   'constellation.legend':
     'เส้นเชื่อม = มี skill ร่วมกันตั้งแต่ระดับ {level} · ขนาดจุด = ระดับ skill รวม · วงสีส้ม = Workload เกิน {threshold}',
+  'constellation.viewProfile': 'ดูโปรไฟล์',
+  'constellation.scrollHint': 'ปัดเพื่อดูกราฟทั้งหมด',
 
   'employees.hint.self': 'คุณเห็นเฉพาะโปรไฟล์ของตัวเอง ตามสิทธิ์ของบทบาท Employee',
   'employees.hint.team': 'คุณเห็นเฉพาะคนในทีม {department}',

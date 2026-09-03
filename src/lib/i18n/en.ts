@@ -12,6 +12,10 @@ export const en = {
   'app.tagline': 'Put the Right Person in the Right Job and Grow the Right Skills',
   'app.principle': 'HRADA analyses, recommends and explains its reasoning — a person always decides',
   'app.headcount': '{count} people',
+  'app.openMenu': 'Open menu',
+  'app.closeMenu': 'Close menu',
+  'app.expandNav': 'Expand navigation labels',
+  'app.collapseNav': 'Collapse navigation labels',
 
   'locale.label': 'Language',
   'locale.th': 'ไทย',
@@ -103,6 +107,8 @@ export const en = {
   'constellation.label': 'Skill Constellation of {count} people',
   'constellation.legend':
     'A line = a shared skill at level {level} or above · dot size = total skill level · orange ring = Workload above {threshold}',
+  'constellation.viewProfile': 'View profile',
+  'constellation.scrollHint': 'Swipe to see the full graph',
 
   // ── employees ────────────────────────────────────────────────────────────
   'employees.hint.self': 'You see only your own profile, per the Employee role',
