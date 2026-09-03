@@ -54,8 +54,6 @@
  * with no seam — feTurbulence is seeded so its noise function matches up at
  * the tile boundary, rather than the usual visible break a naive turbulence
  * tile would show.
- *
- * This custom property is unused for now — see the overlay that consumes it.
  */
 @layer base {
   :root {
@@ -75,6 +73,30 @@
     font-size: var(--text-body);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * The grain overlay — a fixed, full-viewport wash of the noise tile above,
+   * so it reads consistently over both the bare ink background and every
+   * panel/panel-raised surface (cards, the sidebar, the header) rather than
+   * only showing in the gaps between them. z-index is 60 — one above the
+   * highest z-index anywhere else in the app (the drawer/slide-panel layer,
+   * z-50) — so it sits over everything real, the same way film grain sits
+   * over an entire frame rather than being composited per-object.
+   * pointer-events: none keeps it out of the way of every click; the
+   * opacity is low enough (tuned separately, see below) that sitting above
+   * text and controls in paint order doesn't read as sitting "on" them.
+   */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background-image: var(--grain-pattern);
+    background-repeat: repeat;
+    background-size: 128px 128px;
+    opacity: 0.03;
+    pointer-events: none;
   }
 
   /* §14.8 — every number in the system is mono with tabular figures. */
