@@ -39,6 +39,16 @@ any cursor position.
 Every skill level expands to the evidence behind it — a project, a certification, a manager
 review — so a number on screen is never just asserted.
 
+### Workload, Explained
+
+![Employee profile with the Current Workload breakdown](docs/screenshots/09-workload-breakdown.png)
+
+Workload % used to be a bare number with nothing behind it. It now breaks down into the 2–4
+current assignments that make it up — a stacked bar plus a short list, each item's status
+(On Track, At Risk, Wrapping Up, Blocked) — on the profile, and inline wherever Team Matching
+flags someone as a workload risk. Not a task board: no drag targets, nothing to reorder, just
+enough structure to make the percentage explainable.
+
 ### AI Recruit
 
 ![Recruit screen with the Why this match panel open](docs/screenshots/04-recruit-why-match.png)
@@ -46,6 +56,18 @@ review — so a number on screen is never just asserted.
 The highest match score and a critical skill gap can belong to the same candidate at once —
 the "Why this match?" panel shows the full weighted breakdown so the gap can't get buried
 inside an average.
+
+### Resume Drop-Zone (Simulated)
+
+![Recruit screen with a simulated resume added to the ranked list](docs/screenshots/10-recruit-resume-dropzone.png)
+
+A drag-and-drop zone (or "Try a sample resume," for anyone without a file handy) plays the
+same themed analysis loader as the rest of the product, then adds a new candidate straight
+into the ranked list — same Match Score formula, same "Why this match?" panel, plus an
+"Extracted from the resume" section quoting the excerpt each skill level is attributed to.
+No file is ever actually parsed: a small, fixed pool of pre-written outcomes stands in for
+what a real resume-parsing model would return, and an honest label next to the drop-zone
+says so.
 
 ### AI Team Matching
 
@@ -128,7 +150,7 @@ Exact versions are pinned in `package.json`.
 ```
 src/
   data/          Mock data: 14 hand-authored + 36 generated employees, skills, roles,
-                 jobs, candidates, projects, and the learning catalog
+                 jobs, candidates, resume samples, projects, and the learning catalog
   lib/           scoring.ts (every calculation in the product), constellation.ts (the
                  skill-graph layout), permissions.ts (who can see what), theme.ts
                  (design tokens mirrored for TS), i18n/ (Thai/English dictionaries)
@@ -192,7 +214,7 @@ rule for a static SPA's clean routes.
 npm test
 ```
 
-239 tests across 12 files, covering:
+293 tests across 17 files, covering:
 
 - **Every scoring function** in `src/lib/scoring.ts` — one describe block per spec section,
   each asserting the actual formula, not just "it runs."
@@ -205,6 +227,11 @@ npm test
   only two workload-risk cases, Jenjira/Mark/Kitti guaranteed inside High Potential) and the
   suite re-verifies every one of them against the live dataset rather than assuming they still
   hold after a data change.
+- **The two mock-data pools behind Workload and the resume drop-zone** (`activeWork` in
+  `src/data/employees.ts`, `src/data/resumeSamples.ts`) — every person's work items sum to
+  roughly their workload percentage without exceeding it, every resume sample actually clears
+  its target job's required-skill bar, and every job has enough samples that demoing it twice
+  in a row draws a different result.
 - **Design-rule guards** (`src/test/design-rules.test.ts`) — unusual because they check the
   *source code* with regexes rather than rendered output: the color palette stays closed to
   the tokens declared in `theme.ts` (no stray hex literals anywhere else), and any place that
